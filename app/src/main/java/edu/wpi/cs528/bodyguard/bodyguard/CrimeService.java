@@ -18,13 +18,18 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.apache.commons.math3.ml.clustering.Cluster;
+import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
+import org.apache.commons.math3.ml.clustering.DoublePoint;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
 
 public class CrimeService extends Service {
     private static final String TAG = "CrimeService";
@@ -40,12 +45,12 @@ public class CrimeService extends Service {
         workerThread.start();
         clusterHandler = new Handler(workerThread.getLooper());
         // TODO should we start timer in constructor?
-        // schedDownloadAndCluster(100000);
+//         schedDownloadAndCluster(100000);
 
         clusterRunner = new Runnable() {
             @Override
             public void run() {
-                CrimeService.this.doCluster();
+//                CrimeService.this.doCluster(0.05 ,50, //list of doublepoint positions);
             }
         };
     }
@@ -61,7 +66,8 @@ public class CrimeService extends Service {
             @Override
             public void onResponse(String response) {
                 // Display the first 500 characters of the response string.
-                parseJson(response);
+//                parseJson(response);
+                doCluster(0.05,10,parseJson(response));
                 clusterHandler.post(clusterRunner);
             }
         };
@@ -81,16 +87,24 @@ public class CrimeService extends Service {
     }
 
     // TODO Put cluster code here
-    private void doCluster() {
+    private List<Cluster<DoublePoint>> doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
         Log.d(TAG, "pretend to do cluster");
-        for (int i=0; i<5; ++i) {
-            try {
-                Thread.sleep(100);
-                Log.d(TAG, ".");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        DBSCANClusterer dbscan = new DBSCANClusterer(eps, minPts);
+        List<Cluster<DoublePoint>> cluster = dbscan.cluster(positions);
+        for(Cluster<DoublePoint> c : cluster){
+            Log.d("CLUSTERING", c.getPoints().get(0).toString() );
+            Log.d("CLUSTERING", String.valueOf(c.getPoints().size()));
+//            System.out.println(c.getPoints().get(0));
         }
+        return cluster;
+//        for (int i=0; i<5; ++i) {
+//            try {
+//                Thread.sleep(100);
+//                Log.d(TAG, ".");
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
     }
 
     @Override
@@ -149,19 +163,23 @@ public class CrimeService extends Service {
         });
         queue.add(stringRequest);
     }
-    public List<Double[]> parseJson(String str) {
+    public List<DoublePoint> parseJson(String str) {
         Log.d(TAG, "parseJson");
         if (str == null) return new ArrayList<>();
         str = str.substring(45, str.length() - 1);
-        List<Double[]> res = new ArrayList();
+//        List<Double[]> res = new ArrayList();
+        List<DoublePoint> res = new ArrayList<DoublePoint>();
         try {
             JSONObject jsonObj = new JSONObject(str);
             JSONArray crimes = jsonObj.getJSONArray("crimes");
             for (int i = 0; i < crimes.length(); i++) {
                 JSONObject crime = crimes.getJSONObject(i);
-                String lat = crime.getString("lat");
-                String lon = crime.getString("lon");
-                res.add(new Double[]{Double.parseDouble(lat), Double.parseDouble(lon)});
+                double[] d = new double[2];
+                d[0] = Double.parseDouble(crime.getString("lat"));
+                d[1] = Double.parseDouble(crime.getString("lon"));
+
+                res.add(new DoublePoint(d));
+
                 // Log.d(TAG, res.get(res.size() - 1)[0] + " " + res.get(res.size() - 1)[1]);
             }
             Log.d(TAG, String.format("%d points are parsed", res.size()));
