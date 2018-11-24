@@ -22,9 +22,14 @@ public class TestActivity extends AppCompatActivity {
         findViewById(R.id.start_crime_service).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent crimeServiceIntent = new Intent(TestActivity.this,
-                        CrimeService.class);
-                bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
+                if (crimeService == null) {
+                    Intent crimeServiceIntent = new Intent(TestActivity.this,
+                            CrimeService.class);
+                    bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
+                } else {
+                    crimeService.schedDownloadAndCluster(5000);
+                }
+
             }
         });
 

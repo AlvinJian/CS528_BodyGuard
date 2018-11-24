@@ -33,13 +33,12 @@ public class CrimeService extends Service {
     private final Handler clusterHandler;
     private final Runnable clusterRunner;
     private IBinder serviceBinder = new CrimeBinder();
-    private Timer httpTimer;
+    private Timer httpTimer = null;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
         workerThread.start();
         clusterHandler = new Handler(workerThread.getLooper());
-
         // TODO should we start timer in constructor?
         // schedDownloadAndCluster(100000);
 
@@ -52,7 +51,21 @@ public class CrimeService extends Service {
     }
 
     public void schedDownloadAndCluster(long period) {
+        if (httpTimer != null) {
+            Log.i(TAG, "reschedule http timer");
+            httpTimer.cancel();
+        }
         httpTimer = new Timer("forHTTP");
+
+        final Response.Listener<String> responser = new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                // Display the first 500 characters of the response string.
+                parseJson(response);
+                clusterHandler.post(clusterRunner);
+            }
+        };
+
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
@@ -61,7 +74,7 @@ public class CrimeService extends Service {
                 String param_lat="42.364118";
                 String param_lon="-71.058043";
                 String param_radius="0.02";
-                makeRequest(param_lat,param_lon, param_radius);
+                makeRequest(param_lat,param_lon, param_radius, responser);
             }
         };
         httpTimer.schedule(task, 10, period);
@@ -82,6 +95,8 @@ public class CrimeService extends Service {
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "die");
+
         super.onDestroy();
         workerThread.quitSafely();
         httpTimer.cancel();
@@ -98,7 +113,8 @@ public class CrimeService extends Service {
         }
     }
 
-    public void makeRequest(String param_lat, String param_lon, String param_radius){
+    public void makeRequest(String param_lat, String param_lon, String param_radius,
+                            Response.Listener<String> responser){
         String url="https://api.spotcrime.com/crimes.json?";
         String charset="UTF-8";
         String param_callback="jQuery21306773805840830203_1542076452837";
@@ -125,14 +141,7 @@ public class CrimeService extends Service {
 
         // Request a string response from the provided URL.
         StringRequest stringRequest = new StringRequest(Request.Method.GET, query,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // Display the first 500 characters of the response string.
-                        parseJson(response);
-                        clusterHandler.post(clusterRunner);
-                    }
-                }, new Response.ErrorListener() {
+                responser, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 error.printStackTrace();
