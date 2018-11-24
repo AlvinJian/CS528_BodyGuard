@@ -39,7 +39,7 @@ public class CrimeService extends Service {
     private final Runnable clusterRunner;
     private IBinder serviceBinder = new CrimeBinder();
     private Timer httpTimer = null;
-
+    private List<DoublePoint> positions = null;
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
         workerThread.start();
@@ -50,7 +50,7 @@ public class CrimeService extends Service {
         clusterRunner = new Runnable() {
             @Override
             public void run() {
-//                CrimeService.this.doCluster(0.05 ,50, //list of doublepoint positions);
+                CrimeService.this.doCluster(0.05 ,5, positions);
             }
         };
     }
@@ -67,7 +67,7 @@ public class CrimeService extends Service {
             public void onResponse(String response) {
                 // Display the first 500 characters of the response string.
 //                parseJson(response);
-                doCluster(0.05,10,parseJson(response));
+                positions = parseJson(response);
                 clusterHandler.post(clusterRunner);
             }
         };
