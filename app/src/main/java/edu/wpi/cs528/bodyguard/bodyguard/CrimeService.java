@@ -131,18 +131,18 @@ public class CrimeService extends Service {
                             Response.Listener<String> responser){
         String url="https://api.spotcrime.com/crimes.json?";
         String charset="UTF-8";
-        String param_callback="jQuery21306773805840830203_1542076452837";
+//        String param_callback="jQuery21306773805840830203_1542076452837";
         String param_key="heythisisforpublicspotcrime.comuse-forcommercial-or-research-use-call-877.410.1607-or-email-pyrrhus-at-spotcrime.com";
-        String param_="1542076452838";
+//        String param_="1542076452838";
         String query;
         try {
-            query=String.format("lat=%s&lon=%s&radius=%s&callback=%s&key=%s&_=%s",
+            query=String.format("lat=%s&lon=%s&radius=%s&key=%s",
                     URLEncoder.encode(param_lat, charset),
                     URLEncoder.encode(param_lon, charset),
                     URLEncoder.encode(param_radius, charset),
-                    URLEncoder.encode(param_callback, charset),
-                    URLEncoder.encode(param_key, charset),
-                    URLEncoder.encode(param_, charset)
+//                    URLEncoder.encode(param_callback, charset),
+                    URLEncoder.encode(param_key, charset)
+//                    URLEncoder.encode(param_, charset)
             );
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -166,7 +166,7 @@ public class CrimeService extends Service {
     public List<DoublePoint> parseJson(String str) {
         Log.d(TAG, "parseJson");
         if (str == null) return new ArrayList<>();
-        str = str.substring(45, str.length() - 1);
+//        str = str.substring(45, str.length() - 1);
 //        List<Double[]> res = new ArrayList();
         List<DoublePoint> res = new ArrayList<DoublePoint>();
         try {
