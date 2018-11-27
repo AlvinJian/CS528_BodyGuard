@@ -158,6 +158,7 @@ public class CrimeService extends Service {
                 responser, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                Log.e(TAG, "download error");
                 error.printStackTrace();
             }
         });

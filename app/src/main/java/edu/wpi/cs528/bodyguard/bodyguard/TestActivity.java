@@ -27,7 +27,7 @@ public class TestActivity extends AppCompatActivity {
                             CrimeService.class);
                     bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
                 } else {
-                    crimeService.schedDownloadAndCluster(5000);
+                    crimeService.schedDownloadAndCluster(900000);
                 }
 
             }
@@ -38,6 +38,7 @@ public class TestActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (crimeService != null) {
                     TestActivity.this.unbindService(conn);
+                    crimeService = null;
                 }
             }
         });
