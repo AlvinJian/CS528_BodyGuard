@@ -11,6 +11,7 @@ import android.view.View;
 
 public class TestActivity extends AppCompatActivity {
     private final String TAG = "TestActivity";
+    private final long PERIOD = 900000;
 
     private CrimeService crimeService;
 
@@ -27,7 +28,7 @@ public class TestActivity extends AppCompatActivity {
                             CrimeService.class);
                     bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
                 } else {
-                    crimeService.schedDownloadAndCluster(900000);
+                    crimeService.schedDownloadAndCluster(PERIOD);
                 }
 
             }
@@ -51,7 +52,7 @@ public class TestActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             CrimeService.CrimeBinder binder = (CrimeService.CrimeBinder) service;
             crimeService = binder.getService();
-            crimeService.schedDownloadAndCluster(5000);
+            crimeService.schedDownloadAndCluster(PERIOD);
         }
 
         @Override
