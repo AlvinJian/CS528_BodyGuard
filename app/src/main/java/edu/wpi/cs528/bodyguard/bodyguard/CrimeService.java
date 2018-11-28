@@ -113,7 +113,7 @@ public class CrimeService extends Service {
 
         super.onDestroy();
         workerThread.quitSafely();
-        httpTimer.cancel();
+        if (httpTimer != null) httpTimer.cancel();
     }
 
     @Override
