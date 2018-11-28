@@ -1,11 +1,15 @@
 package edu.wpi.cs528.bodyguard.bodyguard;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -15,7 +19,11 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -28,7 +36,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -41,8 +51,16 @@ public class CrimeService extends Service {
     private final Runnable clusterRunner;
     private IBinder serviceBinder = new CrimeBinder();
     private Timer httpTimer = null;
+
     private List<DoublePoint> positions = null;
     private FusedLocationProviderClient fusedLocationProviderClient;
+
+    private LocationRequest locationRequest;
+    private final int UPDATE_INTERVAL = 1000;   // Defined in mili seconds.
+    private final int FASTEST_INTERVAL = 500;   // This number in extremely low, and should be used only for debug
+
+    final private Object locationLck = new Object();
+    private Location lastLocation;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
@@ -57,14 +75,86 @@ public class CrimeService extends Service {
                 CrimeService.this.doCluster(0.05 ,5, positions);
             }
         };
+
+        locationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(UPDATE_INTERVAL)
+                .setFastestInterval(FASTEST_INTERVAL);
+
+        listeners = new HashSet<>();
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
+
+    // Get last known location
+    private Set<LocationUpdateListener> listeners;
+
+    public void removeLocationUpdateListener(LocationUpdateListener listener) {
+        if (listeners.contains(listener)) {
+            listeners.remove(listener);
+        }
+    }
+
+    public void startTrackingLocation(LocationUpdateListener listener) {
+        Log.d(TAG, "getLastKnownLocation()");
+        if (listener != null) listeners.add(listener);
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    if (location != null) {
+                        Log.i(TAG, location.toString());
+                        synchronized (locationLck) {
+                            lastLocation = location;
+                        }
+                        for (LocationUpdateListener l: listeners) {
+                            if (!l.isMute()) {
+                                l.onUpdate(location);
+                            }
+                        }
+                    } else {
+                        Log.w(TAG, "No location retrieved yet");
+                    }
+                    if (!isTrackLocation) {
+                        startLocationUpdates();
+                    }
+                }
+            });
+        }
+    }
+
+    private boolean isTrackLocation = false;
+    private void startLocationUpdates() {
+        Log.i(TAG, "startLocationUpdates()");
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            LocationCallback locationCb = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    super.onLocationResult(locationResult);
+                    Location location =  locationResult.getLastLocation();
+                    if (location != null) {
+                        for (LocationUpdateListener l: listeners) {
+                            if (!l.isMute()) {
+                                l.onUpdate(location);
+                            }
+                        }
+                    }
+                }
+            };
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCb,
+                    workerThread.getLooper());
+            isTrackLocation = true;
+        }
+    }
+
+    public boolean isDownloadSched() {return httpTimer != null;}
 
     public void schedDownloadAndCluster(long period) {
         if (httpTimer != null) {
@@ -87,11 +177,19 @@ public class CrimeService extends Service {
             @Override
             public void run() {
                 Log.d(TAG, "start downloading");
-                // TODO take position from GPS
-                String param_lat="42.364118";
-                String param_lon="-71.058043";
-                String param_radius="0.02";
-                makeRequest(param_lat,param_lon, param_radius, responser);
+                if (lastLocation != null) {
+                    String param_lat = "";
+                    String param_lon = "";
+                    synchronized (locationLck) {
+                        param_lat = String.valueOf(lastLocation.getLatitude());
+                        param_lon = String.valueOf(lastLocation.getLongitude());
+                    }
+                    String param_radius="0.02";
+                    makeRequest(param_lat,param_lon, param_radius, responser);
+                } else {
+                    Log.e(TAG, "last location is null");
+                }
+
             }
         };
         httpTimer.schedule(task, 10, period);
@@ -201,5 +299,23 @@ public class CrimeService extends Service {
         }
         return new ArrayList<>();
 
+    }
+
+    public static abstract class LocationUpdateListener {
+        private boolean isMute;
+
+        LocationUpdateListener() {
+            isMute = false;
+        }
+
+        public boolean isMute() {
+            return isMute;
+        }
+
+        public void mute() {isMute = true;}
+
+        public void unMute() {isMute = false;}
+
+        public abstract void onUpdate(Location loc);
     }
 }

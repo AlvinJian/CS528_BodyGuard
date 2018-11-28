@@ -3,7 +3,6 @@ package edu.wpi.cs528.bodyguard.bodyguard;
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -14,15 +13,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private final String TAG = "MainActivity";
@@ -37,15 +32,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         public void onServiceConnected(ComponentName name, IBinder service) {
             CrimeService.CrimeBinder binder = (CrimeService.CrimeBinder) service;
             crimeService = binder.getService();
+            crimeService.startTrackingLocation(updaterListener);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            crimeService.removeLocationUpdateListener(updaterListener);
             crimeService = null;
         }
     };
 
     private CrimeService crimeService;
+    private CrimeService.LocationUpdateListener updaterListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +53,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMapView.getMapAsync(this);
         mMapView.onCreate(savedInstanceState);
 
+        updaterListener = new CrimeService.LocationUpdateListener() {
+            @Override
+            public void onUpdate(Location loc) {
+                lastLocation = loc;
+                Log.d(TAG, String.format("lat=%f, lon=%f",
+                        loc.getLatitude(), loc.getLongitude()));
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        MainActivity.this.showLastLocationOnMap();
+                    }
+                };
+                runOnUiThread(r);
+            }
+        };
+
         Intent crimeServiceIntent = new Intent(this, CrimeService.class);
         bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
+
         // TODO schedule crime spot download
         // i.e. crimeService.schedDownloadAndCluster(PERIOD);
     }
@@ -72,7 +87,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
         {
-            showCurrentLocationOnMap();
+            if (crimeService != null ){
+                crimeService.startTrackingLocation(updaterListener);
+            }
         }
     }
 
@@ -80,16 +97,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.getUiSettings().setZoomControlsEnabled(true);
-        showCurrentLocationOnMap();
+        showLastLocationOnMap();
     }
 
-    private void showCurrentLocationOnMap() {
+    private void showLastLocationOnMap() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-            if (lastLocation != null) {
+            if (mMap != null && lastLocation != null) {
+                mMap.setMyLocationEnabled(true);
                 LatLng pt = new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pt, 17.0f));
+                if (mMap != null) {
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pt, 17.0f));
+                }
             }
         } else {
             requestLocationAccessPermission();
@@ -119,6 +138,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onStop() {
         super.onStop();
         mMapView.onStop();
+        updaterListener.mute();
     }
 
     @Override
@@ -131,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onResume() {
         super.onResume();
         mMapView.onResume();
+        updaterListener.unMute();
     }
 
     @Override

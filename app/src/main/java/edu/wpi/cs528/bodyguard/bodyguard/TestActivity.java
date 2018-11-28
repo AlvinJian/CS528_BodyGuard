@@ -3,6 +3,7 @@ package edu.wpi.cs528.bodyguard.bodyguard;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.location.Location;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +15,7 @@ public class TestActivity extends AppCompatActivity {
     private final long PERIOD = 900000;
 
     private CrimeService crimeService;
+    private CrimeService.LocationUpdateListener updaterListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,8 +29,6 @@ public class TestActivity extends AppCompatActivity {
                     Intent crimeServiceIntent = new Intent(TestActivity.this,
                             CrimeService.class);
                     bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
-                } else {
-                    crimeService.schedDownloadAndCluster(PERIOD);
                 }
 
             }
@@ -45,6 +45,17 @@ public class TestActivity extends AppCompatActivity {
         });
 
         Log.d(TAG, "onCreate is done");
+        updaterListener = new CrimeService.LocationUpdateListener() {
+            @Override
+            public void onUpdate(Location loc) {
+                Log.d(TAG, String.format("lat=%f, lon=%f",
+                        loc.getLatitude(), loc.getLongitude()));
+                if (!crimeService.isDownloadSched())
+                {
+                    crimeService.schedDownloadAndCluster(PERIOD);
+                }
+            }
+        };
     }
 
     ServiceConnection conn = new ServiceConnection() {
@@ -52,12 +63,31 @@ public class TestActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             CrimeService.CrimeBinder binder = (CrimeService.CrimeBinder) service;
             crimeService = binder.getService();
-            crimeService.schedDownloadAndCluster(PERIOD);
+            crimeService.startTrackingLocation(updaterListener);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            crimeService.removeLocationUpdateListener(updaterListener);
             crimeService = null;
         }
     };
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        updaterListener.mute();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updaterListener.unMute();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(conn);
+    }
 }
