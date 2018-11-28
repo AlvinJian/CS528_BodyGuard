@@ -14,6 +14,8 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,6 +42,8 @@ public class CrimeService extends Service {
     private IBinder serviceBinder = new CrimeBinder();
     private Timer httpTimer = null;
     private List<DoublePoint> positions = null;
+    private FusedLocationProviderClient fusedLocationProviderClient;
+
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
         workerThread.start();
@@ -53,6 +57,13 @@ public class CrimeService extends Service {
                 CrimeService.this.doCluster(0.05 ,5, positions);
             }
         };
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     public void schedDownloadAndCluster(long period) {

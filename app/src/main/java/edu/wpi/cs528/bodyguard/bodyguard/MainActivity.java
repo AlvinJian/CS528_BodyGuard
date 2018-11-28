@@ -44,8 +44,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             crimeService = null;
         }
     };
+
     private CrimeService crimeService;
-    private FusedLocationProviderClient fusedLocationProviderClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,10 +54,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMapView = findViewById(R.id.map);
         mMapView.getMapAsync(this);
         mMapView.onCreate(savedInstanceState);
-
-        // TODO this action causes crash. need figure out why class cannot be found
-        // TODO location provider should be in CrimeService
-        // fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
         Intent crimeServiceIntent = new Intent(this, CrimeService.class);
         bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
