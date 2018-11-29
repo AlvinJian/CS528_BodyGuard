@@ -53,14 +53,16 @@ public class CrimeService extends Service {
 
     private List<DoublePoint> positions = null;
     private FusedLocationProviderClient fusedLocationProviderClient;
+    private double searchRadius=2.0; //2 miles
 
     private LocationRequest locationRequest;
     private final int UPDATE_INTERVAL = 30000;   // Defined in mili seconds.
     private final int FASTEST_INTERVAL = 5000;   // This number in extremely low, and should be used only for debug
-
+    private double[] previousSearchLocation =new double[]{0.0,0.0};
     final private Object locationLck = new Object();
     private Location lastLocation;
     private PendingIntent pendingIntentForLocation;
+    private Response.Listener<String> responser;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
@@ -91,6 +93,14 @@ public class CrimeService extends Service {
         pendingIntentForLocation = PendingIntent.getService(this, 1095,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        responser = new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                positions = parseJson(response);
+                clusterHandler.post(clusterRunner);
+            }
+        };
     }
 
     // Get last known location
@@ -158,11 +168,27 @@ public class CrimeService extends Service {
         if (result != null) {
             Location location = result.getLastLocation();
             if (location != null) {
+                String param_lat = "";
+                String param_lon = "";
+                double lat_double;
+                double lon_double;
                 Log.d(TAG, String.format("lat=%f, lon=%f",
                     location.getLatitude(), location.getLongitude()));
                 synchronized (locationLck) {
                     lastLocation = location;
+                    param_lat = String.valueOf(lastLocation.getLatitude());
+                    param_lon = String.valueOf(lastLocation.getLongitude());
+                    lat_double=lastLocation.getLatitude();
+                    lon_double=lastLocation.getLongitude();
                 }
+
+                if(previousSearchLocation[0]!=0.0 && distance(lat_double,lon_double,previousSearchLocation[0],previousSearchLocation[1],'M')>searchRadius){
+                    Log.d(TAG, "start downloading due to LocationChange");
+                    String param_radius=String.valueOf(searchRadius/100);
+                    makeRequest(param_lat,param_lon, param_radius, responser);
+                }
+
+
                 for (LocationUpdateListener l: listeners) {
                     if (!l.isMute()) {
                         l.onUpdate(location);
@@ -184,28 +210,33 @@ public class CrimeService extends Service {
         }
         httpTimer = new Timer("forHTTP");
 
-        final Response.Listener<String> responser = new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                // Display the first 500 characters of the response string.
-//                parseJson(response);
-                positions = parseJson(response);
-                clusterHandler.post(clusterRunner);
-            }
-        };
+//        final Response.Listener<String> responser = new Response.Listener<String>() {
+//            @Override
+//            public void onResponse(String response) {
+//                // Display the first 500 characters of the response string.
+////                parseJson(response);
+//                positions = parseJson(response);
+//                clusterHandler.post(clusterRunner);
+//            }
+//        };
 
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
-                Log.d(TAG, "start downloading");
+                Log.d(TAG, "start downloading due to TimeSchedule");
                 if (lastLocation != null) {
                     String param_lat = "";
                     String param_lon = "";
+//                    double lat_double;
+//                    double lon_double;
                     synchronized (locationLck) {
                         param_lat = String.valueOf(lastLocation.getLatitude());
                         param_lon = String.valueOf(lastLocation.getLongitude());
+//                        lat_double=lastLocation.getLatitude();
+//                        lon_double=lastLocation.getLongitude();
                     }
-                    String param_radius="0.02";
+
+                    String param_radius=String.valueOf(searchRadius/100);
                     makeRequest(param_lat,param_lon, param_radius, responser);
                 } else {
                     Log.e(TAG, "last location is null");
@@ -261,6 +292,8 @@ public class CrimeService extends Service {
 
     public void makeRequest(String param_lat, String param_lon, String param_radius,
                             Response.Listener<String> responser){
+        //update previousSearchLocation
+        previousSearchLocation[0]=Double.parseDouble(param_lat);previousSearchLocation[1]=Double.parseDouble(param_lon);
         String url="https://api.spotcrime.com/crimes.json?";
         String charset="UTF-8";
 //        String param_callback="jQuery21306773805840830203_1542076452837";
@@ -322,6 +355,31 @@ public class CrimeService extends Service {
         }
         return new ArrayList<>();
 
+    }
+    private double distance(double lat1, double lon1, double lat2, double lon2, char unit) {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        if (unit == 'K') {
+            dist = dist * 1.609344;
+        } else if (unit == 'N') {
+            dist = dist * 0.8684;
+        }
+        return (dist);
+    }
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts decimal degrees to radians             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts radians to decimal degrees             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double rad2deg(double rad) {
+        return (rad * 180.0 / Math.PI);
     }
 
     public static abstract class LocationUpdateListener {
