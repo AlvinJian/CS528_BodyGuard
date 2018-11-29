@@ -64,8 +64,6 @@ public class GeofenceService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        visit_fuller_count = intent.getIntExtra("fuller", 0);
-        visit_gordon_count = intent.getIntExtra("gordon", 0);
         geofencingEvent = GeofencingEvent.fromIntent(intent);
         if (geofencingEvent.hasError()) {
             Log.e(TAG, "" + getErrorString(geofencingEvent.getErrorCode()));
@@ -85,8 +83,8 @@ public class GeofenceService extends IntentService {
             String transitionType = getTransitionString(geofenceTransition);
 
             notifyLocationAlert(transitionType, transitionDetails);
-//            Log.i(TAG, "*************************************" + triggeringGeofences.size());
-            sendMessage(triggeringGeofences.get(0).getRequestId());
+            Log.i(TAG, "*************************************" + triggeringGeofences.size());
+//            sendMessage(triggeringGeofences.get(0).getRequestId());
         }
     }
 
