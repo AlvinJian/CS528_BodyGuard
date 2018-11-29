@@ -1,6 +1,7 @@
 package edu.wpi.cs528.bodyguard.bodyguard;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -19,7 +20,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
@@ -35,7 +35,6 @@ import org.apache.commons.math3.ml.clustering.DoublePoint;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -56,11 +55,12 @@ public class CrimeService extends Service {
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     private LocationRequest locationRequest;
-    private final int UPDATE_INTERVAL = 1000;   // Defined in mili seconds.
-    private final int FASTEST_INTERVAL = 500;   // This number in extremely low, and should be used only for debug
+    private final int UPDATE_INTERVAL = 30000;   // Defined in mili seconds.
+    private final int FASTEST_INTERVAL = 5000;   // This number in extremely low, and should be used only for debug
 
     final private Object locationLck = new Object();
     private Location lastLocation;
+    private PendingIntent pendingIntentForLocation;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
@@ -76,17 +76,20 @@ public class CrimeService extends Service {
             }
         };
 
-        locationRequest = LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(UPDATE_INTERVAL)
-                .setFastestInterval(FASTEST_INTERVAL);
-
         listeners = new HashSet<>();
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        locationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(UPDATE_INTERVAL)
+                .setFastestInterval(FASTEST_INTERVAL);
+
+        Intent intent = new Intent(this, this.getClass());
+        pendingIntentForLocation = PendingIntent.getService(this, 1095,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT);
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
@@ -128,30 +131,48 @@ public class CrimeService extends Service {
         }
     }
 
+    public void stopTrackingLocation() {
+        if (isTrackLocation) {
+            Log.d(TAG, "stopTrackingLocation");
+            fusedLocationProviderClient.removeLocationUpdates(pendingIntentForLocation);
+            isTrackLocation = false;
+            listeners.clear();
+        }
+    }
+
     private boolean isTrackLocation = false;
     private void startLocationUpdates() {
         Log.i(TAG, "startLocationUpdates()");
         if (ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
-            LocationCallback locationCb = new LocationCallback() {
-                @Override
-                public void onLocationResult(LocationResult locationResult) {
-                    super.onLocationResult(locationResult);
-                    Location location =  locationResult.getLastLocation();
-                    if (location != null) {
-                        for (LocationUpdateListener l: listeners) {
-                            if (!l.isMute()) {
-                                l.onUpdate(location);
-                            }
-                        }
-                    }
-                }
-            };
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCb,
-                    workerThread.getLooper());
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest,
+                    pendingIntentForLocation);
             isTrackLocation = true;
         }
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        LocationResult result = LocationResult.extractResult(intent);
+        if (result != null) {
+            Location location = result.getLastLocation();
+            if (location != null) {
+                Log.d(TAG, String.format("lat=%f, lon=%f",
+                    location.getLatitude(), location.getLongitude()));
+                synchronized (locationLck) {
+                    lastLocation = location;
+                }
+                for (LocationUpdateListener l: listeners) {
+                    if (!l.isMute()) {
+                        l.onUpdate(location);
+                    }
+                }
+            }
+        }
+
+        return super.onStartCommand(intent, flags, startId);
+
     }
 
     public boolean isDownloadSched() {return httpTimer != null;}
@@ -219,8 +240,10 @@ public class CrimeService extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "die");
-
         super.onDestroy();
+        if (isTrackLocation) {
+            fusedLocationProviderClient.removeLocationUpdates(pendingIntentForLocation);
+        }
         workerThread.quitSafely();
         if (httpTimer != null) httpTimer.cancel();
     }

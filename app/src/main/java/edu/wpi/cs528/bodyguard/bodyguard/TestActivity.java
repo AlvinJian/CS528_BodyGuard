@@ -25,11 +25,9 @@ public class TestActivity extends AppCompatActivity {
         findViewById(R.id.start_crime_service).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (crimeService == null) {
-                    Intent crimeServiceIntent = new Intent(TestActivity.this,
-                            CrimeService.class);
-                    bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
-                }
+                Intent crimeServiceIntent = new Intent(TestActivity.this,
+                        CrimeService.class);
+                bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
 
             }
         });
@@ -38,6 +36,7 @@ public class TestActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (crimeService != null) {
+                    crimeService.stopTrackingLocation();
                     TestActivity.this.unbindService(conn);
                     crimeService = null;
                 }
@@ -50,7 +49,7 @@ public class TestActivity extends AppCompatActivity {
             public void onUpdate(Location loc) {
                 Log.d(TAG, String.format("lat=%f, lon=%f",
                         loc.getLatitude(), loc.getLongitude()));
-                if (!crimeService.isDownloadSched())
+                if (crimeService!= null && !crimeService.isDownloadSched())
                 {
                     crimeService.schedDownloadAndCluster(PERIOD);
                 }
@@ -68,8 +67,6 @@ public class TestActivity extends AppCompatActivity {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            crimeService.removeLocationUpdateListener(updaterListener);
-            crimeService = null;
         }
     };
 
@@ -88,6 +85,6 @@ public class TestActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unbindService(conn);
+        if (crimeService != null) unbindService(conn);
     }
 }
