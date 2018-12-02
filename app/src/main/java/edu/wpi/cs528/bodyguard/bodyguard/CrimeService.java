@@ -1,16 +1,21 @@
 package edu.wpi.cs528.bodyguard.bodyguard;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -44,6 +49,8 @@ import java.util.TimerTask;
 
 public class CrimeService extends Service {
     private static final String TAG = "CrimeService";
+    private static final String CHANNEL_ID = "CrimeService";
+    private static final int NOTIFICATION_ID = 1095;
 
     private final HandlerThread workerThread;
     private final Handler clusterHandler;
@@ -63,6 +70,9 @@ public class CrimeService extends Service {
     private Location lastLocation;
     private PendingIntent pendingIntentForLocation;
     private Response.Listener<String> responser;
+
+    NotificationManager mNotificationManager;
+    private NotificationCompat.Builder notificationBuilder;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
@@ -101,6 +111,20 @@ public class CrimeService extends Service {
                 clusterHandler.post(clusterRunner);
             }
         };
+
+        mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "crime_service";
+            String description = "crime_service channel";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID);
     }
 
     // Get last known location
@@ -159,6 +183,7 @@ public class CrimeService extends Service {
             fusedLocationProviderClient.requestLocationUpdates(locationRequest,
                     pendingIntentForLocation);
             isTrackLocation = true;
+            runAsForegroundService();
         }
     }
 
@@ -172,8 +197,12 @@ public class CrimeService extends Service {
                 String param_lon = "";
                 double lat_double;
                 double lon_double;
-                Log.d(TAG, String.format("lat=%f, lon=%f",
-                    location.getLatitude(), location.getLongitude()));
+
+                StringBuilder strBuilder = new StringBuilder();
+                strBuilder.append(String.format("lat=%.2f, lon=%.2f\n",
+                        location.getLatitude(), location.getLongitude()));
+                Log.d(TAG, strBuilder.toString());
+
                 synchronized (locationLck) {
                     lastLocation = location;
                     param_lat = String.valueOf(lastLocation.getLatitude());
@@ -182,12 +211,19 @@ public class CrimeService extends Service {
                     lon_double=lastLocation.getLongitude();
                 }
 
-                if(previousSearchLocation[0]!=0.0 && distance(lat_double,lon_double,previousSearchLocation[0],previousSearchLocation[1],'M')>searchRadius){
+                double dist = distance(lat_double,lon_double,previousSearchLocation[0],
+                        previousSearchLocation[1],'M');
+                if(previousSearchLocation[0]!=0.0 && dist >searchRadius){
                     Log.d(TAG, "start downloading due to LocationChange");
+                    strBuilder.append(String.format("dist=%.2f > %.2f download data...\n", dist, searchRadius));
                     String param_radius=String.valueOf(searchRadius/100);
                     makeRequest(param_lat,param_lon, param_radius, responser);
+                } else {
+                    strBuilder.append(String.format("dist=%.2f\n", (previousSearchLocation[0]!=0.0)? dist: 0.0));
                 }
 
+                notificationBuilder.setContentText(strBuilder.toString());
+                mNotificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
 
                 for (LocationUpdateListener l: listeners) {
                     if (!l.isMute()) {
@@ -199,6 +235,15 @@ public class CrimeService extends Service {
 
         return super.onStartCommand(intent, flags, startId);
 
+    }
+
+    private void runAsForegroundService() {
+
+        notificationBuilder.setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("CrimeService is running")
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
+        Notification notification = notificationBuilder.build();
+        startForeground(NOTIFICATION_ID, notification);
     }
 
     public boolean isDownloadSched() {return httpTimer != null;}
