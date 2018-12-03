@@ -73,6 +73,20 @@ public class CrimeService extends Service {
 
     NotificationManager mNotificationManager;
     private NotificationCompat.Builder notificationBuilder;
+    
+    //SMS part
+    //SharedPreference keys
+    public static final String SHARED_PREFS = "sharedPrefs";
+    //key of appeared phone number
+    public static final String TEXT = "text";
+    //key of the message gonna to send
+    private static final String MESSAGE = "message";
+
+    //accept the appeared phone number stored in sharedPreference
+    private String text;
+
+    //accept the value(message) stored in sharedPreference
+    private String sendMessage;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
@@ -443,5 +457,29 @@ public class CrimeService extends Service {
         public void unMute() {isMute = false;}
 
         public abstract void onUpdate(Location loc);
+    }
+    
+    //send SMS
+    public void sendSMS() {
+        //SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        //loadData();
+        //check permission
+        if (checkPermission(Manifest.permission.SEND_SMS)) {
+            //ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, MY_PERMISSIONS_REQUEST_SEND_SMS);
+            return;
+        } else {
+            SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+            text = sharedPreferences.getString(TEXT, "");
+            sendMessage = sharedPreferences.getString(MESSAGE, "");
+
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage(text, null, sendMessage, null,null);
+            Toast.makeText(this,"Send successfully", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private boolean checkPermission(String permission) {
+        int checkPermission = ContextCompat.checkSelfPermission(this, permission);
+        return checkPermission != PackageManager.PERMISSION_GRANTED;
     }
 }
