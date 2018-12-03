@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -14,6 +15,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.Geofence;
@@ -51,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int GEOFENCE_RADIUS = 50;              //meters
     private GeofencingClient geofencingClient;
     private Map<String, Marker> geoFenceMarkerMap;
-    
+
     //phone number input part
     private TextView textView;
     private EditText editText;
@@ -123,7 +128,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // TODO schedule crime spot download
         // i.e. crimeService.schedDownloadAndCluster(PERIOD);
-        
+
+
         //phone number input part
         textView = (TextView) findViewById(R.id.textview);
         editText = (EditText) findViewById(R.id.edittext);
@@ -148,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         loadData();
         updateViews();
+        //sendSMS();
     }
 
     public void saveData() {
@@ -174,8 +181,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         textView.setText(text);
 
     }
-    
-    
+
+
+
     private void requestLocationAccessPermission() {
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
