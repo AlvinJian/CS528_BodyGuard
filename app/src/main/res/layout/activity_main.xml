@@ -9,6 +9,35 @@
     android:orientation="vertical"
     android:gravity="center_horizontal">
 
+    <TextView
+        android:id="@+id/textview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Here will be our test"
+        android:gravity="center_horizontal"
+        android:textSize="25dp"/>
+
+    <EditText
+        android:id="@+id/edittext"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter the phone number"
+        android:inputType="phone"/>
+
+    <Button
+        android:id="@+id/apply_text_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Apply text"
+        android:layout_gravity="center_horizontal"/>
+
+    <Button
+        android:id="@+id/save_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="save data"
+        android:layout_gravity="center_horizontal"/>
+
     <com.google.android.gms.maps.MapView
         android:id="@+id/map"
         android:layout_margin="6dp"
