@@ -51,6 +51,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int GEOFENCE_RADIUS = 50;              //meters
     private GeofencingClient geofencingClient;
     private Map<String, Marker> geoFenceMarkerMap;
+    
+    //phone number input part
+    private TextView textView;
+    private EditText editText;
+    private Button applyTextButton;
+    private Button saveButton;
+    //private Button sendSMSButton;
+
+    //SharedPreference keys
+    public static final String SHARED_PREFS = "sharedPrefs";
+    //key of appeared phone number
+    public static final String TEXT = "text";
+    //key of the message gonna to send
+    private static final String MESSAGE = "message";
+
+    //accept the appeared phone number stored in sharedPreference
+    private String text;
+
+    //content of message
+    private static final String message = "I am now in the dangerous area";
+    //private int MY_PERMISSIONS_REQUEST_SEND_SMS = 1;
+    //accept the value(message) stored in sharedPreference
+    private String sendMessage;
 
     ServiceConnection conn = new ServiceConnection() {
         @Override
@@ -100,8 +123,59 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // TODO schedule crime spot download
         // i.e. crimeService.schedDownloadAndCluster(PERIOD);
+        
+        //phone number input part
+        textView = (TextView) findViewById(R.id.textview);
+        editText = (EditText) findViewById(R.id.edittext);
+        applyTextButton = (Button) findViewById(R.id.apply_text_button);
+        //switch1 = (Switch) findViewById(R.id.switch1);
+        saveButton = (Button) findViewById(R.id.save_button);
+        //sendSMSButton = (Button) findViewById(R.id.send_sms);
+
+        applyTextButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                textView.setText(editText.getText().toString());
+            }
+        });
+
+        saveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                saveData();
+            }
+        });
+
+        loadData();
+        updateViews();
     }
 
+    public void saveData() {
+        SharedPreferences sharedPreferences= getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        editor.putString(TEXT, textView.getText().toString());
+        editor.putString(MESSAGE, message);
+        //editor.putBoolean(SWITCH1, switch1.isChecked());
+
+        editor.apply();
+
+        Toast.makeText(this, "Date saved", Toast.LENGTH_SHORT).show();
+    }
+
+    public void loadData() {
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        text = sharedPreferences.getString(TEXT, "");
+        sendMessage = sharedPreferences.getString(MESSAGE, "");
+    }
+
+    public void updateViews() {
+        //phone number appeared on the top
+        textView.setText(text);
+
+    }
+    
+    
     private void requestLocationAccessPermission() {
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
