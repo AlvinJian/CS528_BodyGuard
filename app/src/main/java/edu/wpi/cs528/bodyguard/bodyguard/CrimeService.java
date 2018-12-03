@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Binder;
@@ -16,7 +17,10 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
+import android.telephony.SmsManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -73,7 +77,7 @@ public class CrimeService extends Service {
 
     NotificationManager mNotificationManager;
     private NotificationCompat.Builder notificationBuilder;
-    
+
     //SMS part
     //SharedPreference keys
     public static final String SHARED_PREFS = "sharedPrefs";
@@ -458,7 +462,8 @@ public class CrimeService extends Service {
 
         public abstract void onUpdate(Location loc);
     }
-    
+
+
     //send SMS
     public void sendSMS() {
         //SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
