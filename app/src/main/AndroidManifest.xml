@@ -33,6 +33,8 @@
             </intent-filter>
         </activity>
 
+        <service android:name=".GeofenceService"></service>
+
         <service
             android:name=".CrimeService"
             android:enabled="true"
