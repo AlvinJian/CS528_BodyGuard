@@ -23,13 +23,10 @@ import java.util.List;
 import java.util.Locale;
 
 public class GeofenceService extends IntentService {
-    private static final String TAG = "LocationAlertIS";
+    private static final String TAG = "GeofenceService";
     private GeofencingEvent geofencingEvent;
     private static final String channelId = "default_channel_id";
     private static final String channelDescription = "Default Channel";
-
-    private int visit_fuller_count;
-    private int visit_gordon_count;
 
     // Defines a custom Intent action
     public static final String BROADCAST_ACTION = "com.example.android.threadsample.BROADCAST";
@@ -45,25 +42,26 @@ public class GeofenceService extends IntentService {
         // You can also include some extra data.
         Intent intent = new Intent(BROADCAST_ACTION);
         intent.putExtra("message", message);
-        switch (message) {
-            case "fullerLab":
-                visit_fuller_count += 1;
-                intent.putExtra("fuller", visit_fuller_count);
-
-                break;
-            case "gordanLibrary":
-                visit_gordon_count += 1;
-                intent.putExtra("gordon", visit_gordon_count);
-                break;
-            default:
-                break;
-        }
+//        switch (message) {
+//            case "fullerLab":
+//                visit_fuller_count += 1;
+//                intent.putExtra("fuller", visit_fuller_count);
+//
+//                break;
+//            case "gordanLibrary":
+//                visit_gordon_count += 1;
+//                intent.putExtra("gordon", visit_gordon_count);
+//                break;
+//            default:
+//                break;
+//        }
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        Log.i(TAG, "*************************************");
         geofencingEvent = GeofencingEvent.fromIntent(intent);
         if (geofencingEvent.hasError()) {
             Log.e(TAG, "" + getErrorString(geofencingEvent.getErrorCode()));
@@ -72,7 +70,7 @@ public class GeofenceService extends IntentService {
 
 
         int geofenceTransition = geofencingEvent.getGeofenceTransition();
-
+//        Log.i(TAG, "*************************************");
         if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
 //            Log.i(TAG, geofencingEvent.getTriggeringLocation().getLatitude() + "" + geofencingEvent.getTriggeringLocation().getLongitude());
             List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
@@ -83,7 +81,7 @@ public class GeofenceService extends IntentService {
             String transitionType = getTransitionString(geofenceTransition);
 
             notifyLocationAlert(transitionType, transitionDetails);
-            Log.i(TAG, "*************************************" + triggeringGeofences.size());
+//            Log.i(TAG, "*************************************" + triggeringGeofences.size());
 //            sendMessage(triggeringGeofences.get(0).getRequestId());
         }
     }
