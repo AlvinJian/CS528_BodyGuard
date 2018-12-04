@@ -42,6 +42,7 @@ import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.apache.commons.math3.ml.clustering.DoublePoint;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -311,24 +312,25 @@ public class CrimeService extends Service {
     }
 
     // TODO Put cluster code here
-    private List<Cluster<DoublePoint>> doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
+    private List<Double[]> doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
         Log.d(TAG, "pretend to do cluster");
+        List<Double[]> center = new ArrayList<Double[]>();
+
         DBSCANClusterer dbscan = new DBSCANClusterer(eps, minPts);
         List<Cluster<DoublePoint>> cluster = dbscan.cluster(positions);
         for(Cluster<DoublePoint> c : cluster){
-            Log.d("CLUSTERING", c.getPoints().get(0).toString() );
-            Log.d("CLUSTERING", String.valueOf(c.getPoints().size()));
-//            System.out.println(c.getPoints().get(0));
+            Double[] d = {0.0,0.0};
+            for(int i =0; i<c.getPoints().size(); i++ ){
+                d[0] += c.getPoints().get(i).getPoint()[0];
+                d[1] += c.getPoints().get(i).getPoint()[1];
+            }
+            d[0] = d[0]/c.getPoints().size();
+            d[1] = d[1]/c.getPoints().size();
+            center.add(d);
+
         }
-        return cluster;
-//        for (int i=0; i<5; ++i) {
-//            try {
-//                Thread.sleep(100);
-//                Log.d(TAG, ".");
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
+        return center;
+
     }
 
     @Override
