@@ -258,7 +258,7 @@ public class CrimeService extends Service {
 
     private void runAsForegroundService() {
 
-        notificationBuilder.setSmallIcon(R.drawable.ic_launcher_foreground)
+        notificationBuilder.setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentTitle("CrimeService is running")
                 .setPriority(NotificationCompat.PRIORITY_HIGH);
         Notification notification = notificationBuilder.build();

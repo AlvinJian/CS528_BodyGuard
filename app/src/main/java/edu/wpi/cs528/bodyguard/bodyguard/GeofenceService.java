@@ -192,7 +192,7 @@ public class GeofenceService extends IntentService {
 
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(this, channelId)
-                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setSmallIcon(R.mipmap.ic_launcher_round)
                         .setContentTitle(locTransitionType)
                         .setContentText(locationDetails);
 
