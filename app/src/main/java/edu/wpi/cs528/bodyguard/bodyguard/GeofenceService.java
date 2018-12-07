@@ -62,6 +62,7 @@ public class GeofenceService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         Log.i(TAG, "*************************************");
+        Log.i(TAG, intent.getStringExtra("Cluster center"));
         geofencingEvent = GeofencingEvent.fromIntent(intent);
         if (geofencingEvent.hasError()) {
             Log.e(TAG, "" + getErrorString(geofencingEvent.getErrorCode()));

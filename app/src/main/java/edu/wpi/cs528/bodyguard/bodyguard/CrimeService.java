@@ -45,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -103,7 +104,7 @@ public class CrimeService extends Service {
         clusterRunner = new Runnable() {
             @Override
             public void run() {
-                CrimeService.this.doCluster(0.05 ,5, positions);
+                CrimeService.this.doCluster(0.01 ,20, positions);
             }
         };
 
@@ -312,24 +313,47 @@ public class CrimeService extends Service {
     }
 
     // TODO Put cluster code here
-    private List<Double[]> doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
+    private void  doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
         Log.d(TAG, "pretend to do cluster");
-        List<Double[]> center = new ArrayList<Double[]>();
-
+//        List<Double[]> center = new ArrayList<Double[]>();
+        ArrayList<String> centers = new ArrayList<>();
+        Intent clusterIntent = new Intent(this,GeofenceService.class);
         DBSCANClusterer dbscan = new DBSCANClusterer(eps, minPts);
         List<Cluster<DoublePoint>> cluster = dbscan.cluster(positions);
-        for(Cluster<DoublePoint> c : cluster){
-            Double[] d = {0.0,0.0};
-            for(int i =0; i<c.getPoints().size(); i++ ){
-                d[0] += c.getPoints().get(i).getPoint()[0];
-                d[1] += c.getPoints().get(i).getPoint()[1];
+        Log.d(TAG, String.valueOf(cluster.size()));
+        if(cluster.size()>0){
+            for(Cluster<DoublePoint> c : cluster){
+                Double[] d = {0.0,0.0};
+                for(int i =0; i<c.getPoints().size(); i++ ){
+                    d[0] += c.getPoints().get(i).getPoint()[0];
+                    d[1] += c.getPoints().get(i).getPoint()[1];
+
+
+                }
+                d[0] = d[0]/c.getPoints().size();
+                d[1] = d[1]/c.getPoints().size();
+//            Log.d(TAG, d[0].toString());
+//            Log.d(TAG, d[1].toString());
+                centers.add(Arrays.toString(d));
+
+
+
+
             }
-            d[0] = d[0]/c.getPoints().size();
-            d[1] = d[1]/c.getPoints().size();
-            center.add(d);
+            Double[] test = {0.0,0.0};
+            centers.add(Arrays.toString(test));
+//            clusterIntent.putExtra("Cluster center", Arrays.toString(test));
+            clusterIntent.putExtra("Cluster center", centers.toString());
+
+            startService(clusterIntent);
+//
+
 
         }
-        return center;
+
+        else{
+            Log.d(TAG, "No cluster formed!");
+        }
 
     }
 
