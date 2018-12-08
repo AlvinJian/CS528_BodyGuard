@@ -63,6 +63,7 @@ public class CrimeService extends Service {
     private final Runnable clusterRunner;
     private IBinder serviceBinder = new CrimeBinder();
     private Timer httpTimer = null;
+    private final long PERIOD = 86400000;
 
     private List<DoublePoint> positions = null;
     private FusedLocationProviderClient fusedLocationProviderClient;
@@ -70,7 +71,7 @@ public class CrimeService extends Service {
 
     private LocationRequest locationRequest;
     private final int UPDATE_INTERVAL = 30000;   // Defined in mili seconds.
-    private final int FASTEST_INTERVAL = 5000;   // This number in extremely low, and should be used only for debug
+    private final int FASTEST_INTERVAL = 10000;   // This number in extremely low, and should be used only for debug
     private double[] previousSearchLocation =new double[]{0.0,0.0};
     final private Object locationLck = new Object();
     private Location lastLocation;
@@ -233,7 +234,9 @@ public class CrimeService extends Service {
 
                 double dist = distance(lat_double,lon_double,previousSearchLocation[0],
                         previousSearchLocation[1],'M');
-                if(previousSearchLocation[0]!=0.0 && dist >searchRadius){
+                if (previousSearchLocation[0] == 0.0) {
+                    schedDownloadAndCluster(PERIOD);
+                } else if(previousSearchLocation[0] != 0.0 && dist >searchRadius){
                     Log.d(TAG, "start downloading due to LocationChange");
                     strBuilder.append(String.format("dist=%.2f > %.2f download data...\n", dist, searchRadius));
                     String param_radius=String.valueOf(searchRadius/100);
@@ -242,8 +245,9 @@ public class CrimeService extends Service {
                     strBuilder.append(String.format("dist=%.2f\n", (previousSearchLocation[0]!=0.0)? dist: 0.0));
                 }
 
-                notificationBuilder.setContentText(strBuilder.toString());
-                mNotificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+                // Keep this code for debug purpose
+                // notificationBuilder.setContentText(strBuilder.toString());
+                // mNotificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
 
                 for (LocationUpdateListener l: listeners) {
                     if (!l.isMute()) {
@@ -332,8 +336,7 @@ public class CrimeService extends Service {
                 }
                 d[0] = d[0]/c.getPoints().size();
                 d[1] = d[1]/c.getPoints().size();
-//            Log.d(TAG, d[0].toString());
-//            Log.d(TAG, d[1].toString());
+                Log.d(TAG, String.format("cluster center: %f, %f", d[0], d[1]));
                 centers.add(Arrays.toString(d));
 
 
