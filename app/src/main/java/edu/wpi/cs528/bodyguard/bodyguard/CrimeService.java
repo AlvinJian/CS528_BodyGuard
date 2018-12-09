@@ -374,7 +374,9 @@ public class CrimeService extends Service {
     }
 
     public LatLng[] getLastClusterCenter() {
-        return lastClusterCenter;
+        synchronized (clusterLck) {
+            return lastClusterCenter;
+        }
     }
 
     @Override
