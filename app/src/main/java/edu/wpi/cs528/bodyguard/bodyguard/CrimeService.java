@@ -101,6 +101,9 @@ public class CrimeService extends Service {
     //check to send sms
     private boolean start = true;
 
+    private LatLng[] lastClusterCenter = null;
+    private final Object clusterLck = new Object();
+
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
         workerThread.start();
@@ -325,7 +328,7 @@ public class CrimeService extends Service {
 
     // TODO Put cluster code here
     private void  doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
-        Log.d(TAG, "pretend to do cluster");
+        Log.d(TAG, "doCluster");
 //        List<Double[]> center = new ArrayList<Double[]>();
         ArrayList<LatLng> centers = new ArrayList<>();
         Intent clusterIntent = new Intent(this,GeofenceService.class);
@@ -349,6 +352,10 @@ public class CrimeService extends Service {
 
             LatLng[] locArray = centers.toArray(new LatLng[centers.size()]);
 
+            synchronized (clusterLck) {
+                lastClusterCenter = locArray;
+            }
+
             for (DataUpdateListener l: listeners) {
                 if (!l.isMute()) {
                     l.onClusterUpdate(locArray);
@@ -364,6 +371,10 @@ public class CrimeService extends Service {
             Log.d(TAG, "No cluster formed!");
         }
 
+    }
+
+    public LatLng[] getLastClusterCenter() {
+        return lastClusterCenter;
     }
 
     @Override
