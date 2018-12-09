@@ -52,8 +52,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private MapView mMapView;
     private Location lastLocation;
-    private static final LatLng fullerLab = new LatLng(42.275078, -71.806574);
-    private static final LatLng gordanLibrary = new LatLng(42.274228, -71.806544);
 
     private static final String GEOFENCE_REQ_ID = "My Geofence";
     private Bundle bundle = new Bundle();
@@ -227,12 +225,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.getUiSettings().setZoomControlsEnabled(true);
         showLastLocationOnMap();
         geofenceCluster = new ArrayList<>();
-
-//        geofenceCluster.add(fullerLab);
-//        geofenceCluster.add(gordanLibrary);
-//        markerForGeofence("fullerLab", fullerLab);
-//        markerForGeofence("gordanLibrary", gordanLibrary);
-//        setGeofence();
     }
 
     private void showLastLocationOnMap() {
@@ -261,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GeofencingRequest getGeofencingRequest(Geofence geofence) {
         Log.d(TAG, "createGeofenceRequest");
         return new GeofencingRequest.Builder()
-                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+//                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
                 .addGeofence(geofence)
                 .build();
     }
@@ -283,21 +275,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void setGeofence(LatLng[] centers) {
         Log.i(TAG, Integer.toString(centers.length));
         if(centers != null && centers.length != 0) {
+            removeGeofence();
             for(LatLng center : centers) {
                 Geofence geofence = getGeofence(center);
                 addGeofence(geofence, center);
             }
         }
-//        if (geoFenceMarkerMap != null && geoFenceMarkerMap.size() != 0) {
-//            removeGeofence();
-//            Iterator it = geoFenceMarkerMap.entrySet().iterator();
-//            while (it.hasNext()) {
-//                Map.Entry pair = (Map.Entry) it.next();
-//                Marker geoFenceMarker = (Marker) pair.getValue();
-//                Geofence geofence = getGeofence(geoFenceMarker.getPosition());
-//                addGeofence(geofence, geoFenceMarker);
-//            }
-//        }
     }
 
     private void addGeofence(Geofence geofence, final LatLng center) {
@@ -363,9 +346,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void drawGeofence(LatLng geofence) {
         Log.d(TAG, "drawGeofence()");
 
-//        if (geoFenceLimits != null)
-//            geoFenceLimits.remove();
-
         CircleOptions circleOptions = new CircleOptions()
                 .center(geofence)
                 .strokeColor(Color.argb(50, 70, 70, 70))
@@ -383,9 +363,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                 .title(title);
         if (mMap != null) {
-            // Remove last geoFenceMarker
-//            if (geoFenceMarker != null)
-//                geoFenceMarker.remove();
             if (geoFenceMarkerMap == null)
                 geoFenceMarkerMap = new HashMap<>();
             if (geoFenceMarkerMap.get(location) == null) {
