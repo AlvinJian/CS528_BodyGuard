@@ -2,8 +2,11 @@ package edu.wpi.cs528.bodyguard.bodyguard;
 
 import android.Manifest;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -13,6 +16,7 @@ import android.os.IBinder;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -58,8 +62,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int GEOFENCE_RADIUS = 50;              //meters
     private GeofencingClient geofencingClient;
     private Map<String, Marker> geoFenceMarkerMap;
-    private List<LatLng> geofenceCluster;
 
+    public static final String BROADCAST_ACTION = "edu.wpi.cs528.bodyguard.bodyguard.BROADCAST";
     //phone number input part
     private TextView textView;
     private EditText editText;
@@ -109,6 +113,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMapView.getMapAsync(this);
         mMapView.onCreate(savedInstanceState);
         geofencingClient = LocationServices.getGeofencingClient(this);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(BROADCAST_ACTION));
 
         updaterListener = new CrimeService.DataUpdateListener() {
             @Override
@@ -133,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void run() {
                         // TODO add markers in this runnable
                         if (pts != null) {
-                            setGeofence(pts);
+//                            setGeofence(pts);
                             for (Parcelable pa: pts) {
                                 LatLng latlng = (LatLng) pa;
                                 Log.i(TAG, latlng.toString());
@@ -201,7 +207,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            ArrayList<LatLng> cluster = (ArrayList<LatLng>)intent.getSerializableExtra("cluster");
+            Log.i("cluster", "Got cluster: " + cluster.size());
+            for(LatLng center : cluster) {
+                drawGeofence(center);
+            }
+        }
+    };
 
     private void requestLocationAccessPermission() {
         ActivityCompat.requestPermissions(this,
@@ -224,7 +240,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap = googleMap;
         mMap.getUiSettings().setZoomControlsEnabled(true);
         showLastLocationOnMap();
-        geofenceCluster = new ArrayList<>();
     }
 
     private void showLastLocationOnMap() {
@@ -237,107 +252,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pt, 17.0f));
                 }
             }
-        } else {
-            requestLocationAccessPermission();
-        }
-    }
-
-    private PendingIntent getGeofencePendingIntent() {
-        Log.d(TAG, "createGeofencePendingIntent");
-
-        Intent intent = new Intent(this, GeofenceService.class);
-        return PendingIntent.getService(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
-    }
-
-    private GeofencingRequest getGeofencingRequest(Geofence geofence) {
-        Log.d(TAG, "createGeofenceRequest");
-        return new GeofencingRequest.Builder()
-//                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-                .addGeofence(geofence)
-                .build();
-    }
-
-    private Geofence getGeofence(LatLng latlng) {
-        Log.d(TAG, "createGeofence");
-
-        return new Geofence.Builder()
-                .setRequestId(GEOFENCE_REQ_ID)
-                .setCircularRegion(latlng.latitude, latlng.longitude, GEOFENCE_RADIUS)
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_DWELL
-                        | Geofence.GEOFENCE_TRANSITION_EXIT)
-                .setLoiteringDelay(3000)
-                .build();
-    }
-
-    // Start Geofence creation process
-    private void setGeofence(LatLng[] centers) {
-        Log.i(TAG, Integer.toString(centers.length));
-        if(centers != null && centers.length != 0) {
-            removeGeofence();
-            for(LatLng center : centers) {
-                Geofence geofence = getGeofence(center);
-                addGeofence(geofence, center);
-            }
-        }
-    }
-
-    private void addGeofence(Geofence geofence, final LatLng center) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            geofencingClient.addGeofences(getGeofencingRequest(geofence), getGeofencePendingIntent())
-                    .addOnSuccessListener(this, new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Log.i(TAG, "success");
-                            Toast.makeText(MainActivity.this,
-                                    "Location alter has been added",
-                                    Toast.LENGTH_SHORT).show();
-                            drawGeofence(center);
-                        }
-                    })
-                    .addOnFailureListener(this, new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.i(TAG, "failure");
-                            Log.i(TAG, e.getMessage());
-                            Toast.makeText(MainActivity.this,
-                                    "Location alter could not be added",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-            return;
-        } else {
-            requestLocationAccessPermission();
-        }
-    }
-
-    private void removeGeofence() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            geofencingClient.removeGeofences(getGeofencePendingIntent())
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            if (task.isSuccessful()) {
-                                Log.i(TAG, "removed successfully");
-                                Toast.makeText(MainActivity.this,
-                                        "Location alters have been removed",
-                                        Toast.LENGTH_SHORT).show();
-                            } else {
-                                Log.i(TAG, "removed fail");
-                                Toast.makeText(MainActivity.this,
-                                        "Location alters could not be removed",
-                                        Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
         } else {
             requestLocationAccessPermission();
         }
@@ -387,6 +301,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onDestroy() {
         super.onDestroy();
         mMapView.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
         unbindService(conn);
     }
 
