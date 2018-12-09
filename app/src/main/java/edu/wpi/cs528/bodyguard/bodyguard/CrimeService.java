@@ -1,11 +1,13 @@
 package edu.wpi.cs528.bodyguard.bodyguard;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -15,11 +17,13 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.telephony.SmsManager;
 import android.util.Log;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -94,6 +98,8 @@ public class CrimeService extends Service {
 
     //accept the value(message) stored in sharedPreference
     private String sendMessage;
+    //check to send sms
+    private boolean start = true;
 
     public CrimeService() {
         workerThread =  new HandlerThread("worker");
@@ -210,6 +216,7 @@ public class CrimeService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         LocationResult result = LocationResult.extractResult(intent);
         if (result != null) {
             Location location = result.getLastLocation();
@@ -493,27 +500,70 @@ public class CrimeService extends Service {
     }
 
 
-    //send SMS
+    //send SMS and pop dialog
+
+
     public void sendSMS() {
-        //SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
-        //loadData();
         //check permission
-        if (checkPermission(Manifest.permission.SEND_SMS)) {
-            //ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, MY_PERMISSIONS_REQUEST_SEND_SMS);
-            return;
-        } else {
+        Log.d("sendSMS", "???");
+        if (!checkPermission(Manifest.permission.SEND_SMS)) {
+            Log.d("sendSMS", "send?");
             SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
             text = sharedPreferences.getString(TEXT, "");
             sendMessage = sharedPreferences.getString(MESSAGE, "");
-
             SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(text, null, sendMessage, null,null);
-            Toast.makeText(this,"Send successfully", Toast.LENGTH_SHORT).show();
+            smsManager.sendTextMessage(text, null, sendMessage, null, null);
+            Toast.makeText(this, "Send successfully", Toast.LENGTH_LONG).show();
+            Log.d("sendSMS", "Yes!!!");
         }
     }
 
     private boolean checkPermission(String permission) {
         int checkPermission = ContextCompat.checkSelfPermission(this, permission);
         return checkPermission != PackageManager.PERMISSION_GRANTED;
+    }
+
+    public void popUpDialog() {
+        start = true;
+
+        AlertDialog.Builder a_builder = new AlertDialog.Builder(this);
+        a_builder.setMessage("Do you want to send sms to emergency contact !!!")
+                .setCancelable(false)
+                .setPositiveButton("Yes",new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        sendSMS();
+                        start = false;
+                        Log.d("start", String.valueOf(start));
+                    }
+                })
+                .setNegativeButton("No",new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                        start = false;
+                        Log.d("start", String.valueOf(start));
+                    }
+                }) ;
+        final AlertDialog alert = a_builder.create();
+        alert.setTitle("Alert !!!");
+        alert.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
+        alert.show();
+
+        Log.d("start", String.valueOf(start));
+
+        final Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                alert.dismiss();
+                timer.cancel();
+                if (start) {
+                    Looper.prepare();
+                    sendSMS();
+                    Looper.loop();
+                }
+            }
+        }, 5000);
     }
 }
