@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void run() {
                         // TODO add markers in this runnable
                         if (pts != null) {
+                            setGeofence(pts);
                             for (Parcelable pa: pts) {
                                 LatLng latlng = (LatLng) pa;
                                 Log.i(TAG, latlng.toString());
@@ -227,11 +228,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         showLastLocationOnMap();
         geofenceCluster = new ArrayList<>();
 
-        geofenceCluster.add(fullerLab);
-        geofenceCluster.add(gordanLibrary);
+//        geofenceCluster.add(fullerLab);
+//        geofenceCluster.add(gordanLibrary);
 //        markerForGeofence("fullerLab", fullerLab);
 //        markerForGeofence("gordanLibrary", gordanLibrary);
-        setGeofence();
+//        setGeofence();
     }
 
     private void showLastLocationOnMap() {
@@ -279,10 +280,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     // Start Geofence creation process
-    private void setGeofence() {
-        Log.i(TAG, "setGeofence()");
-        if(geofenceCluster != null && geofenceCluster.size() != 0) {
-            for(LatLng center : geofenceCluster) {
+    private void setGeofence(LatLng[] centers) {
+        Log.i(TAG, Integer.toString(centers.length));
+        if(centers != null && centers.length != 0) {
+            for(LatLng center : centers) {
                 Geofence geofence = getGeofence(center);
                 addGeofence(geofence, center);
             }
