@@ -36,6 +36,7 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import org.json.JSONArray;
@@ -46,7 +47,6 @@ import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.apache.commons.math3.ml.clustering.DoublePoint;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -155,15 +155,15 @@ public class CrimeService extends Service {
     }
 
     // Get last known location
-    private Set<LocationUpdateListener> listeners;
+    private Set<DataUpdateListener> listeners;
 
-    public void removeLocationUpdateListener(LocationUpdateListener listener) {
+    public void removeLocationUpdateListener(DataUpdateListener listener) {
         if (listeners.contains(listener)) {
             listeners.remove(listener);
         }
     }
 
-    public void startTrackingLocation(LocationUpdateListener listener) {
+    public void startTrackingLocation(DataUpdateListener listener) {
         Log.d(TAG, "getLastKnownLocation()");
         if (listener != null) listeners.add(listener);
         if (ActivityCompat.checkSelfPermission(this,
@@ -176,9 +176,9 @@ public class CrimeService extends Service {
                         synchronized (locationLck) {
                             lastLocation = location;
                         }
-                        for (LocationUpdateListener l: listeners) {
+                        for (DataUpdateListener l: listeners) {
                             if (!l.isMute()) {
-                                l.onUpdate(location);
+                                l.onLocationUpdate(location);
                             }
                         }
                     } else {
@@ -256,9 +256,9 @@ public class CrimeService extends Service {
                 // notificationBuilder.setContentText(strBuilder.toString());
                 // mNotificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
 
-                for (LocationUpdateListener l: listeners) {
+                for (DataUpdateListener l: listeners) {
                     if (!l.isMute()) {
-                        l.onUpdate(location);
+                        l.onLocationUpdate(location);
                     }
                 }
             }
@@ -327,7 +327,7 @@ public class CrimeService extends Service {
     private void  doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
         Log.d(TAG, "pretend to do cluster");
 //        List<Double[]> center = new ArrayList<Double[]>();
-        ArrayList<String> centers = new ArrayList<>();
+        ArrayList<LatLng> centers = new ArrayList<>();
         Intent clusterIntent = new Intent(this,GeofenceService.class);
         DBSCANClusterer dbscan = new DBSCANClusterer(eps, minPts);
         List<Cluster<DoublePoint>> cluster = dbscan.cluster(positions);
@@ -344,20 +344,19 @@ public class CrimeService extends Service {
                 d[0] = d[0]/c.getPoints().size();
                 d[1] = d[1]/c.getPoints().size();
                 Log.d(TAG, String.format("cluster center: %f, %f", d[0], d[1]));
-                centers.add(Arrays.toString(d));
-
-
-
-
+                centers.add(new LatLng(d[0], d[1]));
             }
-            Double[] test = {0.0,0.0};
-            centers.add(Arrays.toString(test));
-//            clusterIntent.putExtra("Cluster center", Arrays.toString(test));
-            clusterIntent.putExtra("Cluster center", centers.toString());
 
+            LatLng[] locArray = centers.toArray(new LatLng[centers.size()]);
+
+            for (DataUpdateListener l: listeners) {
+                if (!l.isMute()) {
+                    l.onClusterUpdate(locArray);
+                }
+            }
+
+            clusterIntent.putExtra("ClusterCenter", locArray);
             startService(clusterIntent);
-//
-
 
         }
 
@@ -481,10 +480,10 @@ public class CrimeService extends Service {
         return (rad * 180.0 / Math.PI);
     }
 
-    public static abstract class LocationUpdateListener {
+    public static abstract class DataUpdateListener {
         private boolean isMute;
 
-        LocationUpdateListener() {
+        DataUpdateListener() {
             isMute = false;
         }
 
@@ -496,7 +495,9 @@ public class CrimeService extends Service {
 
         public void unMute() {isMute = false;}
 
-        public abstract void onUpdate(Location loc);
+        public abstract void onLocationUpdate(final Location loc);
+        // NOTE: the same format as what are transfer to geofence service
+        public abstract void onClusterUpdate(final LatLng[] pts);
     }
 
 

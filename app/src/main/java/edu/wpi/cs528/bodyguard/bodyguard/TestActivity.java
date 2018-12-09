@@ -5,17 +5,20 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+
+import com.google.android.gms.maps.model.LatLng;
 
 public class TestActivity extends AppCompatActivity {
     private final String TAG = "TestActivity";
     private final long PERIOD = 900000;
 
     private CrimeService crimeService;
-    private CrimeService.LocationUpdateListener updaterListener;
+    private CrimeService.DataUpdateListener updaterListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,15 +47,32 @@ public class TestActivity extends AppCompatActivity {
         });
 
         Log.d(TAG, "onCreate is done");
-        updaterListener = new CrimeService.LocationUpdateListener() {
+        updaterListener = new CrimeService.DataUpdateListener() {
             @Override
-            public void onUpdate(Location loc) {
+            public void onLocationUpdate(final Location loc) {
                 Log.d(TAG, String.format("lat=%f, lon=%f",
                         loc.getLatitude(), loc.getLongitude()));
                 if (crimeService!= null && !crimeService.isDownloadSched())
                 {
                     crimeService.schedDownloadAndCluster(PERIOD);
                 }
+            }
+
+            @Override
+            public void onClusterUpdate(final LatLng[] pts) {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        // TODO add markers in this runnable
+                        if (pts != null) {
+                            for (Parcelable pa: pts) {
+                                LatLng latlng = (LatLng) pa;
+                                Log.i(TAG, latlng.toString());
+                            }
+                        }
+                    }
+                };
+                runOnUiThread(r);
             }
         };
     }

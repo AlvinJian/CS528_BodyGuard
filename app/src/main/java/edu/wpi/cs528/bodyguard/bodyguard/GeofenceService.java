@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.os.Parcelable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import android.util.Log;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofenceStatusCodes;
 import com.google.android.gms.location.GeofencingEvent;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +64,13 @@ public class GeofenceService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         Log.i(TAG, "*************************************");
-        Log.i(TAG, intent.getStringExtra("Cluster center"));
+        Parcelable[] pts = intent.getParcelableArrayExtra("ClusterCenter");
+        if (pts != null) {
+            for (Parcelable pa: pts) {
+                LatLng latlng = (LatLng) pa;
+                Log.i(TAG, latlng.toString());
+            }
+        }
         geofencingEvent = GeofencingEvent.fromIntent(intent);
         if (geofencingEvent.hasError()) {
             Log.e(TAG, "" + getErrorString(geofencingEvent.getErrorCode()));

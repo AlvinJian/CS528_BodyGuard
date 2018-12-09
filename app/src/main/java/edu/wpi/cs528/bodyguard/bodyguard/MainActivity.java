@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -41,7 +42,6 @@ import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 
     private CrimeService crimeService;
-    private CrimeService.LocationUpdateListener updaterListener;
+    private CrimeService.DataUpdateListener updaterListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,9 +112,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMapView.onCreate(savedInstanceState);
         geofencingClient = LocationServices.getGeofencingClient(this);
 
-        updaterListener = new CrimeService.LocationUpdateListener() {
+        updaterListener = new CrimeService.DataUpdateListener() {
             @Override
-            public void onUpdate(Location loc) {
+            public void onLocationUpdate(final Location loc) {
                 lastLocation = loc;
                 Log.d(TAG, String.format("lat=%f, lon=%f",
                         loc.getLatitude(), loc.getLongitude()));
@@ -127,13 +127,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 };
                 runOnUiThread(r);
             }
+
+            @Override
+            public void onClusterUpdate(final LatLng[] pts) {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        // TODO add markers in this runnable
+                        if (pts != null) {
+                            for (Parcelable pa: pts) {
+                                LatLng latlng = (LatLng) pa;
+                                Log.i(TAG, latlng.toString());
+                            }
+                        }
+                    }
+                };
+                runOnUiThread(r);
+            }
         };
 
         Intent crimeServiceIntent = new Intent(this, CrimeService.class);
         bindService(crimeServiceIntent, conn, BIND_AUTO_CREATE);
-
-        // TODO schedule crime spot download
-        // i.e. crimeService.schedDownloadAndCluster(PERIOD);
 
 
         //phone number input part
