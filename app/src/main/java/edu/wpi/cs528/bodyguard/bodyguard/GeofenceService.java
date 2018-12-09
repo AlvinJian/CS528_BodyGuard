@@ -66,6 +66,7 @@ public class GeofenceService extends IntentService {
         Log.i(TAG, "*************************************");
         Parcelable[] pts = intent.getParcelableArrayExtra("ClusterCenter");
         if (pts != null) {
+            Log.i(TAG, "cluster point size="+pts.length);
             for (Parcelable pa: pts) {
                 LatLng latlng = (LatLng) pa;
                 Log.i(TAG, latlng.toString());
