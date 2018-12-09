@@ -39,6 +39,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import org.apache.commons.math3.ml.distance.DistanceMeasure;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -114,7 +115,7 @@ public class CrimeService extends Service {
         clusterRunner = new Runnable() {
             @Override
             public void run() {
-                CrimeService.this.doCluster(0.01 ,20, positions);
+                CrimeService.this.doCluster(0.5,1, positions);
             }
         };
 
@@ -122,6 +123,7 @@ public class CrimeService extends Service {
     }
 
     @Override
+
     public void onCreate() {
         super.onCreate();
         locationRequest = LocationRequest.create()
@@ -325,6 +327,22 @@ public class CrimeService extends Service {
         };
         httpTimer.schedule(task, 10, period);
     }
+    class CustomDistanceMeasure implements DistanceMeasure {
+        @Override
+        public double compute(double[] a, double[] b) {
+//            Log.d(TAG,String.format("Customized distance measure"));
+            double theta = a[1] - b[1];
+            double dist = Math.sin(deg2rad(a[0])) * Math.sin(deg2rad(b[0])) + Math.cos(deg2rad(a[0])) * Math.cos(deg2rad(b[0])) * Math.cos(deg2rad(theta));
+            dist = Math.acos(dist);
+            dist = rad2deg(dist);
+            dist = dist * 60 * 1.1515;
+
+            dist = dist * 0.8684;
+//            Log.d(TAG,String.format("distance = %s",String.valueOf(dist)));
+            return (dist);
+        }
+    }
+
 
     // TODO Put cluster code here
     private void  doCluster( double eps ,int minPts  ,List<DoublePoint> positions ) {
@@ -332,9 +350,10 @@ public class CrimeService extends Service {
 //        List<Double[]> center = new ArrayList<Double[]>();
         ArrayList<LatLng> centers = new ArrayList<>();
         Intent clusterIntent = new Intent(this,GeofenceService.class);
-        DBSCANClusterer dbscan = new DBSCANClusterer(eps, minPts);
+        CustomDistanceMeasure measure = new CustomDistanceMeasure();
+        DBSCANClusterer dbscan = new DBSCANClusterer(eps, minPts,measure);
         List<Cluster<DoublePoint>> cluster = dbscan.cluster(positions);
-        Log.d(TAG, String.valueOf(cluster.size()));
+        Log.d(TAG, String.format("number of cluster %s",String.valueOf(cluster.size())));
         if(cluster.size()>0){
             for(Cluster<DoublePoint> c : cluster){
                 Double[] d = {0.0,0.0};
@@ -347,6 +366,7 @@ public class CrimeService extends Service {
                 d[0] = d[0]/c.getPoints().size();
                 d[1] = d[1]/c.getPoints().size();
                 Log.d(TAG, String.format("cluster center: %f, %f", d[0], d[1]));
+                Log.d(TAG, String.format("cluster size: %s", String.valueOf(c.getPoints().size())));
                 centers.add(new LatLng(d[0], d[1]));
             }
 
