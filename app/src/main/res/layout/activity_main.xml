@@ -25,13 +25,6 @@
         android:inputType="phone"/>
 
     <Button
-        android:id="@+id/apply_text_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Apply text"
-        android:layout_gravity="center_horizontal"/>
-
-    <Button
         android:id="@+id/save_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
