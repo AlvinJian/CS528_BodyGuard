@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int LOC_PERM_REQ_CODE = 1;
     private GoogleMap mMap;
     private MapView mMapView;
-    private Location lastLocation;
+    private Location lastLocation = null;
 
     private static final String GEOFENCE_REQ_ID = "My Geofence";
     private Bundle bundle = new Bundle();
@@ -119,17 +119,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         updaterListener = new CrimeService.DataUpdateListener() {
             @Override
             public void onLocationUpdate(final Location loc) {
+                Location prevLoc = lastLocation;
                 lastLocation = loc;
                 Log.d(TAG, String.format("lat=%f, lon=%f",
                         loc.getLatitude(), loc.getLongitude()));
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        MainActivity.this.showLastLocationOnMap();
+                if (prevLoc == null) {
+                    Runnable r = new Runnable() {
+                        @Override
+                        public void run() {
+                            MainActivity.this.showLastLocationOnMap();
+                            LatLng[] cluster = crimeService.getLastClusterCenter();
+                            if (cluster != null) {
+                                for(LatLng center : cluster) {
+                                    drawGeofence(center);
+                                }
+                            }
+                        }
 
-                    }
-                };
-                runOnUiThread(r);
+                    };
+                    runOnUiThread(r);
+                }
             }
 
             @Override
@@ -137,7 +146,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
-                        // TODO add markers in this runnable
                         if (pts != null) {
 //                            setGeofence(pts);
                             for (Parcelable pa: pts) {
