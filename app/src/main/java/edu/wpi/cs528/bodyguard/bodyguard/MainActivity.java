@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //phone number input part
     private TextView textView;
     private EditText editText;
-    private Button applyTextButton;
+    //private Button applyTextButton;
     private Button saveButton;
     //private Button sendSMSButton;
 
@@ -166,21 +166,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //phone number input part
         textView = (TextView) findViewById(R.id.textview);
         editText = (EditText) findViewById(R.id.edittext);
-        applyTextButton = (Button) findViewById(R.id.apply_text_button);
+        //applyTextButton = (Button) findViewById(R.id.apply_text_button);
         //switch1 = (Switch) findViewById(R.id.switch1);
         saveButton = (Button) findViewById(R.id.save_button);
         //sendSMSButton = (Button) findViewById(R.id.send_sms);
 
-        applyTextButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                textView.setText(editText.getText().toString());
-            }
-        });
+//         applyTextButton.setOnClickListener(new View.OnClickListener() {
+//             @Override
+//             public void onClick(View view) {
+//                 textView.setText(editText.getText().toString());
+//             }
+//         });
 
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                textView.setText(editText.getText().toString());
                 saveData();
             }
         });
