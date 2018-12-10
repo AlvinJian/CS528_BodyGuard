@@ -222,6 +222,11 @@ public class CrimeService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        //modify boolean name
+        if (intent.getBooleanExtra("trigger", false)) {
+            popUpDialog();
+        }
+        
         LocationResult result = LocationResult.extractResult(intent);
         if (result != null) {
             Location location = result.getLastLocation();
