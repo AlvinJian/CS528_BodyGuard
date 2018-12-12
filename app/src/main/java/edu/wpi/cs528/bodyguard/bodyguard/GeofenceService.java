@@ -142,24 +142,12 @@ public class GeofenceService extends IntentService {
 
 
     public void initializeTimerTask() {
-
+        final Intent dialogIntent = new Intent(this,CrimeService.class);
+        dialogIntent.putExtra("isShow", true);
         timerTask = new TimerTask() {
             public void run() {
-
-                //use a handler to run a toast that shows the current timestamp
-//                handler.post(new Runnable() {
-//                    public void run() {
-//                        //get the current timeStamp
-//                        Calendar calendar = Calendar.getInstance();
-//                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd:MMMM:yyyy HH:mm:ss a");
-//                        final String strDate = simpleDateFormat.format(calendar.getTime());
-//
-//                        //show the toast
-//                        int duration = Toast.LENGTH_SHORT;
-//                        Toast toast = Toast.makeText(getApplicationContext(), strDate, duration);
-//                        toast.show();
-//                    }
-//                });
+                startService(dialogIntent);
+                stopTimer();
             }
         };
     }
