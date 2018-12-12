@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class GeofenceService extends IntentService {
     private static final String TAG = "GeofenceService";
@@ -49,9 +51,11 @@ public class GeofenceService extends IntentService {
 
     private static final int LOC_PERM_REQ_CODE = 1;
     private static final String GEOFENCE_REQ_ID = "My Geofence";
-    private Bundle bundle = new Bundle();
-    private static final int GEOFENCE_RADIUS = 50;              //meters
+    private static final int GEOFENCE_RADIUS = 500;
     private GeofencingClient geofencingClient;
+
+    private Timer geofenceTimer = null;
+    TimerTask timerTask = null;
 
     @Override
     public void onCreate() {
@@ -69,11 +73,103 @@ public class GeofenceService extends IntentService {
         super(TAG);
     }
 
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        List<LatLng> clusters = new ArrayList<>();
+        Parcelable[] pts = intent.getParcelableArrayExtra("ClusterCenter");
+        if (pts != null) {
+            Log.i(TAG, "cluster point size="+pts.length);
+            for (Parcelable pa: pts) {
+                LatLng latlng = (LatLng) pa;
+                clusters.add(latlng);
+                Log.i(TAG, latlng.toString());
+            }
+            setGeofence(clusters);
+            sendClusters(clusters);
+        }
+        geofencingEvent = GeofencingEvent.fromIntent(intent);
+        if (geofencingEvent.hasError()) {
+            Log.e(TAG, "" + getErrorString(geofencingEvent.getErrorCode()));
+            return;
+        }
+
+
+        int geofenceTransition = geofencingEvent.getGeofenceTransition();
+        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
+            Log.i(TAG, "geofence enter");
+            startTimer();
+            List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
+
+            String transitionDetails = getGeofenceTransitionInfo(
+                    triggeringGeofences);
+
+            String transitionType = getTransitionString(geofenceTransition);
+
+            notifyLocationAlert(transitionType, transitionDetails);
+        }
+
+        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT) {
+            Log.i(TAG, "geofence exit");
+            stopTimer();
+            List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
+
+            String transitionDetails = getGeofenceTransitionInfo(
+                    triggeringGeofences);
+
+            String transitionType = getTransitionString(geofenceTransition);
+
+            notifyLocationAlert(transitionType, transitionDetails);
+        }
+    }
+
+    public void startTimer() {
+        Log.i(TAG, "start geofence timer");
+        geofenceTimer = new Timer();
+        //initialize the TimerTask's job
+        initializeTimerTask();
+        //schedule the timer, after the first delay time the TimerTask will run every period
+        geofenceTimer.schedule(timerTask, 0, 1000); //
+    }
+
+    public void stopTimer() {
+        Log.i(TAG, "stop geofence timer");
+        //stop the timer, if it's not already null
+        if (geofenceTimer != null) {
+            geofenceTimer.cancel();
+            geofenceTimer = null;
+        }
+    }
+
+
+    public void initializeTimerTask() {
+
+        timerTask = new TimerTask() {
+            public void run() {
+
+                //use a handler to run a toast that shows the current timestamp
+//                handler.post(new Runnable() {
+//                    public void run() {
+//                        //get the current timeStamp
+//                        Calendar calendar = Calendar.getInstance();
+//                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd:MMMM:yyyy HH:mm:ss a");
+//                        final String strDate = simpleDateFormat.format(calendar.getTime());
+//
+//                        //show the toast
+//                        int duration = Toast.LENGTH_SHORT;
+//                        Toast toast = Toast.makeText(getApplicationContext(), strDate, duration);
+//                        toast.show();
+//                    }
+//                });
+            }
+        };
+    }
+
     // Send an Intent with an action named "custom-event-name". The Intent sent should
     // be received by the ReceiverActivity.
     private void sendClusters(List<LatLng> cluster) {
         // You can also include some extra data.
         Intent intent = new Intent(BROADCAST_ACTION);
+        Log.i("send cluster", "" + cluster.size());
         intent.putExtra("cluster", (ArrayList)cluster);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
@@ -104,7 +200,7 @@ public class GeofenceService extends IntentService {
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
                 .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_DWELL
                         | Geofence.GEOFENCE_TRANSITION_EXIT)
-                .setLoiteringDelay(3000)
+                .setLoiteringDelay(1000)
                 .build();
     }
 
@@ -160,42 +256,6 @@ public class GeofenceService extends IntentService {
                             }
                         }
                     });
-        }
-    }
-
-    @Override
-    protected void onHandleIntent(Intent intent) {
-        Log.i(TAG, "*************************************");
-        List<LatLng> clusters = new ArrayList<>();
-        Parcelable[] pts = intent.getParcelableArrayExtra("ClusterCenter");
-        if (pts != null) {
-            Log.i(TAG, "cluster point size="+pts.length);
-            for (Parcelable pa: pts) {
-                LatLng latlng = (LatLng) pa;
-                clusters.add(latlng);
-                Log.i(TAG, latlng.toString());
-            }
-            setGeofence(clusters);
-            sendClusters(clusters);
-        }
-        geofencingEvent = GeofencingEvent.fromIntent(intent);
-        if (geofencingEvent.hasError()) {
-            Log.e(TAG, "" + getErrorString(geofencingEvent.getErrorCode()));
-            return;
-        }
-
-
-        int geofenceTransition = geofencingEvent.getGeofenceTransition();
-//        Log.i(TAG, "*************************************");
-        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
-            List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
-
-            String transitionDetails = getGeofenceTransitionInfo(
-                    triggeringGeofences);
-
-            String transitionType = getTransitionString(geofenceTransition);
-
-            notifyLocationAlert(transitionType, transitionDetails);
         }
     }
 

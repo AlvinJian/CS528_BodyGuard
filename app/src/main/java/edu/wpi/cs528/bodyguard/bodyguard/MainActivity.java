@@ -57,11 +57,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MapView mMapView;
     private Location lastLocation = null;
 
-    private static final String GEOFENCE_REQ_ID = "My Geofence";
-    private Bundle bundle = new Bundle();
-    private static final int GEOFENCE_RADIUS = 50;              //meters
-    private GeofencingClient geofencingClient;
-    private Map<String, Marker> geoFenceMarkerMap;
+    private static final int GEOFENCE_RADIUS = 500;
 
     public static final String BROADCAST_ACTION = "edu.wpi.cs528.bodyguard.bodyguard.BROADCAST";
     //phone number input part
@@ -112,7 +108,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMapView = findViewById(R.id.map);
         mMapView.getMapAsync(this);
         mMapView.onCreate(savedInstanceState);
-        geofencingClient = LocationServices.getGeofencingClient(this);
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter(BROADCAST_ACTION));
 
@@ -271,27 +266,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         CircleOptions circleOptions = new CircleOptions()
                 .center(geofence)
-                .strokeColor(Color.argb(50, 70, 70, 70))
-                .fillColor(Color.argb(100, 150, 150, 150))
+                .strokeColor(Color.argb(50, 204, 51, 0))
+                .fillColor(Color.argb(100, 204, 51, 0))
                 .radius(GEOFENCE_RADIUS);
         mMap.addCircle(circleOptions);
-    }
-
-    private void markerForGeofence(String location, LatLng latLng) {
-        Log.i(TAG, "markerForGeofence(" + latLng + ")");
-        String title = latLng.latitude + ", " + latLng.longitude;
-        // Define marker options
-        MarkerOptions markerOptions = new MarkerOptions()
-                .position(latLng)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                .title(title);
-        if (mMap != null) {
-            if (geoFenceMarkerMap == null)
-                geoFenceMarkerMap = new HashMap<>();
-            if (geoFenceMarkerMap.get(location) == null) {
-                geoFenceMarkerMap.put(location, mMap.addMarker(markerOptions));
-            }
-        }
     }
 
     @Override
