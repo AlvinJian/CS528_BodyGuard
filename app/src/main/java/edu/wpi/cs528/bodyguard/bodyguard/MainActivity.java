@@ -35,6 +35,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private MapView mMapView;
     private Location lastLocation = null;
+    Circle mapCircle;
 
     private static final int GEOFENCE_RADIUS = 500;
 
@@ -272,7 +274,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .strokeColor(Color.argb(50, 204, 51, 0))
                 .fillColor(Color.argb(100, 204, 51, 0))
                 .radius(GEOFENCE_RADIUS);
-        mMap.addCircle(circleOptions);
+
+        if(mapCircle!=null){
+            mapCircle.remove();
+        }
+        mapCircle = mMap.addCircle(circleOptions);
     }
 
     @Override
