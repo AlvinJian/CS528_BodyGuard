@@ -72,7 +72,7 @@ public class CrimeService extends Service {
 
     private List<DoublePoint> positions = null;
     private FusedLocationProviderClient fusedLocationProviderClient;
-    private double searchRadius=2.0; //2 miles
+    private double searchRadius= 2.0; //2 miles
 
     private LocationRequest locationRequest;
     private final int UPDATE_INTERVAL = 30000;   // Defined in mili seconds.

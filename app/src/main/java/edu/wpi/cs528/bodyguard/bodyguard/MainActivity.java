@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Location lastLocation = null;
     Circle mapCircle;
 
-    private static final int GEOFENCE_RADIUS = 500;
+    private static final int GEOFENCE_RADIUS = 700;
 
     public static final String BROADCAST_ACTION = "edu.wpi.cs528.bodyguard.bodyguard.BROADCAST";
     //phone number input part

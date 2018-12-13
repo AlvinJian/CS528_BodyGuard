@@ -51,7 +51,7 @@ public class GeofenceService extends IntentService {
 
     private static final int LOC_PERM_REQ_CODE = 1;
     private static final String GEOFENCE_REQ_ID = "My Geofence";
-    private static final int GEOFENCE_RADIUS = 500;
+    private static final int GEOFENCE_RADIUS = 700;
     private GeofencingClient geofencingClient;
 
     private Timer geofenceTimer = null;
@@ -128,7 +128,8 @@ public class GeofenceService extends IntentService {
         //initialize the TimerTask's job
         initializeTimerTask();
         //schedule the timer, after the first delay time the TimerTask will run every period
-        geofenceTimer.schedule(timerTask, 0, 300 * 1000); //
+        // workaround. use wrong API...LOL
+        geofenceTimer.schedule(timerTask, 60*1000, 6000000); //
     }
 
     public void stopTimer() {
