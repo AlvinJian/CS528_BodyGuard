@@ -12,9 +12,13 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.net.Uri;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.Parcelable;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -53,6 +57,8 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private final String TAG = "MainActivity";
 
+    public static final int REQUEST_PERMISSION = 123;
+    public final static int REQUEST_CODE = 10101;
     private static final int LOC_PERM_REQ_CODE = 1;
     private GoogleMap mMap;
     private MapView mMapView;
@@ -109,6 +115,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Log.v("App", "Build Version Greater than or equal to M: " + Build.VERSION_CODES.M);
+            checkDrawOverlayPermission();
+        } else {
+            Log.v("App", "OS Version Less than M");
+            //No need for Permission as less then M OS.
+        }
+
         mMapView = findViewById(R.id.map);
         mMapView.getMapAsync(this);
         mMapView.onCreate(savedInstanceState);
@@ -189,6 +203,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         loadData();
         updateViews();
         //sendSMS();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public void checkDrawOverlayPermission() {
+        Log.v("App", "Package Name: " + getApplicationContext().getPackageName());
+
+        // Check if we already  have permission to draw over other apps
+        if (!Settings.canDrawOverlays(this)) {
+            Log.v("App", "Requesting Permission" + Settings.canDrawOverlays(this));
+            // if not construct intent to request permission
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getApplicationContext().getPackageName()));
+            // request permission via start activity for result
+            startActivityForResult(intent, REQUEST_CODE); //It will call onActivityResult Function After you press Yes/No and go Back after giving permission
+        } else {
+            Log.v("App", "We already have permission for it.");
+            // disablePullNotificationTouch();
+            // Do your stuff, we got permission captain
+        }
     }
 
     public void saveData() {
