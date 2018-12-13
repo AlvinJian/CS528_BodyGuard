@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public static final String BROADCAST_ACTION = "edu.wpi.cs528.bodyguard.bodyguard.BROADCAST";
     //phone number input part
     private TextView textView;
+    private EditText edittext_name;
     private EditText editText;
     //private Button applyTextButton;
     private Button saveButton;
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //private int MY_PERMISSIONS_REQUEST_SEND_SMS = 1;
     //accept the value(message) stored in sharedPreference
     private String sendMessage;
+    private String contactName;
 
     ServiceConnection conn = new ServiceConnection() {
         @Override
@@ -162,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //phone number input part
         textView = (TextView) findViewById(R.id.textview);
+        edittext_name = (EditText) findViewById(R.id.edittext_name);
         editText = (EditText) findViewById(R.id.edittext);
         //applyTextButton = (Button) findViewById(R.id.apply_text_button);
         //switch1 = (Switch) findViewById(R.id.switch1);
@@ -178,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                textView.setText(editText.getText().toString());
+                textView.setText(edittext_name.getText().toString());
                 saveData();
             }
         });
@@ -192,24 +195,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SharedPreferences sharedPreferences= getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        editor.putString(TEXT, textView.getText().toString());
+//        editor.putString(TEXT, textView.getText().toString());
+        editor.putString(TEXT, editText.getText().toString());
+        editor.putString("Contact", edittext_name.getText().toString());
         editor.putString(MESSAGE, message);
         //editor.putBoolean(SWITCH1, switch1.isChecked());
 
         editor.apply();
 
-        Toast.makeText(this, "Date saved", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Contact saved", Toast.LENGTH_SHORT).show();
     }
 
     public void loadData() {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         text = sharedPreferences.getString(TEXT, "");
+        contactName=sharedPreferences.getString("Contact","");
         sendMessage = sharedPreferences.getString(MESSAGE, "");
     }
 
     public void updateViews() {
         //phone number appeared on the top
-        textView.setText(text);
+        textView.setText(contactName);
 
     }
 

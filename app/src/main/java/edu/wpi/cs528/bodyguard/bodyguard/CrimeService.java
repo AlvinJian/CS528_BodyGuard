@@ -25,6 +25,8 @@ import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
+import android.location.Geocoder;
+import android.location.Address;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -47,6 +49,7 @@ import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.apache.commons.math3.ml.clustering.DoublePoint;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -56,6 +59,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Locale;
 
 
 public class CrimeService extends Service {
@@ -93,6 +97,7 @@ public class CrimeService extends Service {
     public static final String TEXT = "text";
     //key of the message gonna to send
     private static final String MESSAGE = "message";
+    private String smsAddress="";
 
     //accept the appeared phone number stored in sharedPreference
     private String text;
@@ -224,7 +229,11 @@ public class CrimeService extends Service {
 
         //modify boolean name
         if (intent.getBooleanExtra("isShow", false)) {
-            popUpDialog();
+            try{
+                popUpDialog();
+            }catch (IOException e){
+
+            }
         }
         
         LocationResult result = LocationResult.extractResult(intent);
@@ -553,11 +562,13 @@ public class CrimeService extends Service {
             SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
             text = sharedPreferences.getString(TEXT, "");
             sendMessage = sharedPreferences.getString(MESSAGE, "");
+            sendMessage +=". Address: "+smsAddress;
             SmsManager smsManager = SmsManager.getDefault();
             smsManager.sendTextMessage(text, null, sendMessage, null, null);
             Toast.makeText(this, "Send successfully", Toast.LENGTH_LONG).show();
             Log.d("sendSMS", "Yes!!!");
         }
+        smsAddress="";
     }
 
     private boolean checkPermission(String permission) {
@@ -565,12 +576,12 @@ public class CrimeService extends Service {
         return checkPermission != PackageManager.PERMISSION_GRANTED;
     }
 
-    public void popUpDialog() {
+    public void popUpDialog() throws IOException {
         Log.d(TAG, "popUpDialog");
         start = true;
 
         AlertDialog.Builder a_builder = new AlertDialog.Builder(this);
-        a_builder.setMessage("Do you want to send sms to emergency contact !!!")
+        a_builder.setMessage("Do you want to send sms to emergency contact ??!!")
                 .setCancelable(false)
                 .setPositiveButton("Yes",new DialogInterface.OnClickListener() {
                     @Override
@@ -594,6 +605,43 @@ public class CrimeService extends Service {
         alert.show();
 
         Log.d("start", String.valueOf(start));
+        //
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        List<Address> addresses = null;
+
+        try {
+            addresses = geocoder.getFromLocation(
+                    lastLocation.getLatitude(),
+                    lastLocation.getLongitude(),1);
+        } catch (IOException ioException) {
+            // Catch network or other I/O problems.
+//            errorMessage = getString(R.string.service_not_available);
+            Log.e(TAG, "GeoCoder Error");
+        } catch (IllegalArgumentException illegalArgumentException) {
+            // Catch invalid latitude or longitude values.
+//            errorMessage = getString(R.string.invalid_lat_long_used);
+            Log.e(TAG, "GeoCoder Error "+
+                    "Latitude = " + lastLocation.getLatitude() +
+                    ", Longitude = " +
+                    lastLocation.getLongitude(), illegalArgumentException);
+        }
+
+        if(addresses.size()>0){
+            StringBuilder builder=new StringBuilder();
+            Address address=addresses.get(0);
+            for(int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                builder.append(address.getAddressLine(i)+" ");
+            }
+            smsAddress=builder.toString();
+            Log.d(TAG, "popUpDialog: smsAddress"+smsAddress);
+        }
+        //
+
+
+
+
+
+
 
         final Timer timer = new Timer();
         timer.schedule(new TimerTask() {

@@ -18,24 +18,32 @@
         android:textSize="25dp"/>
 
     <EditText
+        android:id="@+id/edittext_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter contact name"
+        android:inputType="textPersonName"/>
+
+    <EditText
         android:id="@+id/edittext"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Enter the phone number"
         android:inputType="phone"/>
 
+
     <Button
         android:id="@+id/save_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="save data"
+        android:text="save contact info"
         android:layout_gravity="center_horizontal"/>
 
     <com.google.android.gms.maps.MapView
         android:id="@+id/map"
-        android:layout_margin="6dp"
-        android:layout_width="250dp"
-        android:layout_height="250dp"
-        android:layout_gravity="center_horizontal"/>
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="6dp" />
 
 </LinearLayout>
