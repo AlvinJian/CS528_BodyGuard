@@ -563,10 +563,16 @@ public class CrimeService extends Service {
             text = sharedPreferences.getString(TEXT, "");
             sendMessage = sharedPreferences.getString(MESSAGE, "");
             sendMessage +=". Address: "+smsAddress;
-            SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(text, null, sendMessage, null, null);
-            Toast.makeText(this, "Send successfully", Toast.LENGTH_LONG).show();
-            Log.d("sendSMS", "Yes!!!");
+            try {
+                SmsManager smsManager = SmsManager.getDefault();
+                smsManager.sendTextMessage(text, null, sendMessage, null, null);
+                Toast.makeText(this, "Send successfully", Toast.LENGTH_LONG).show();
+                Log.d("sendSMS", "Yes!!!");
+            } catch (Exception e) {
+                Toast.makeText(this, "Send failed! Have you enter contact number? ", Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
+
         }
         smsAddress="";
     }
