@@ -225,7 +225,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void requestLocationAccessPermission() {
         ActivityCompat.requestPermissions(this,
-                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.SEND_SMS,
+                        Manifest.permission.READ_PHONE_STATE},
                 LOC_PERM_REQ_CODE);
     }
 

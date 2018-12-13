@@ -128,7 +128,7 @@ public class GeofenceService extends IntentService {
         //initialize the TimerTask's job
         initializeTimerTask();
         //schedule the timer, after the first delay time the TimerTask will run every period
-        geofenceTimer.schedule(timerTask, 0, 1000); //
+        geofenceTimer.schedule(timerTask, 0, 300 * 1000); //
     }
 
     public void stopTimer() {
@@ -174,7 +174,7 @@ public class GeofenceService extends IntentService {
     private GeofencingRequest getGeofencingRequest(Geofence geofence) {
         Log.d(TAG, "createGeofenceRequest");
         return new GeofencingRequest.Builder()
-//                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+                .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
                 .addGeofence(geofence)
                 .build();
     }

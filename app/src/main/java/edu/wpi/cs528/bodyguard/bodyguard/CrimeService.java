@@ -223,7 +223,7 @@ public class CrimeService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         //modify boolean name
-        if (intent.getBooleanExtra("trigger", false)) {
+        if (intent.getBooleanExtra("isShow", false)) {
             popUpDialog();
         }
         
@@ -374,6 +374,9 @@ public class CrimeService extends Service {
                 Log.d(TAG, String.format("cluster size: %s", String.valueOf(c.getPoints().size())));
                 centers.add(new LatLng(d[0], d[1]));
             }
+
+            // for debug purpose
+            // centers.add(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()));
 
             LatLng[] locArray = centers.toArray(new LatLng[centers.size()]);
 
@@ -563,6 +566,7 @@ public class CrimeService extends Service {
     }
 
     public void popUpDialog() {
+        Log.d(TAG, "popUpDialog");
         start = true;
 
         AlertDialog.Builder a_builder = new AlertDialog.Builder(this);
@@ -586,7 +590,7 @@ public class CrimeService extends Service {
                 }) ;
         final AlertDialog alert = a_builder.create();
         alert.setTitle("Alert !!!");
-        alert.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
+        alert.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
         alert.show();
 
         Log.d("start", String.valueOf(start));
@@ -601,8 +605,9 @@ public class CrimeService extends Service {
                     Looper.prepare();
                     sendSMS();
                     Looper.loop();
+                    start = false;
                 }
             }
-        }, 5000);
+        }, 30000);
     }
 }
